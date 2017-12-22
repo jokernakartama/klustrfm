@@ -151,7 +151,7 @@ AX.put = function (url, params = null) {
 AX.patch = function (url, params = null) {
   return setUrlAndMethod(this, url, 'patch', params)
 }
-AX.delete = function (url, params) {
+AX.delete = function (url, params = null) {
   return setUrlAndMethod(this, url, 'delete', params)
 }
 // callbacks

@@ -7,7 +7,7 @@ import { history } from '~/utilities/history'
 import App from './App'
 import TokenReciever from '~/components/TokenReciever'
 import StaticPage from '~/components/StaticPage'
-import configureStore from 'store'
+import configureStore from './store'
 import '@/index.styl'
 
 session.start()

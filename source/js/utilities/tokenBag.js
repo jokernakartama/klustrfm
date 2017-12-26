@@ -1,4 +1,4 @@
-import session from '~/utilities/session'
+import * as session from '~/utilities/session'
 import expirationTime from '~/utilities/expirationTime'
 
 export const TOKEN_BAG_PREFIX = 'token_'

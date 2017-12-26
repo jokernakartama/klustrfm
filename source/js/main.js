@@ -1,4 +1,4 @@
-import session from '~/utilities/session' 
+import { start as startSession } from '~/utilities/session'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
@@ -10,22 +10,24 @@ import StaticPage from '~/components/StaticPage'
 import configureStore from './store'
 import '@/index.styl'
 
-session.start()
-
 const store = configureStore()
-
-ReactDOM.render(
-  <Provider store={ store }>
-    <Router basename="/" history={ history }>
-      <div className="page">
-        <Link to='/about'>about</Link>
-        <Switch>
-          <Route path='/token' component={ TokenReciever } />
-          <Route exact path='/:service([a-z,0-9,\-]+):(trash)?/:path*' component={ App } />
-          <Route exact path='/:request([^:]+)' component={ StaticPage } />
-        </Switch>
-      </div>
-    </Router>
-  </Provider>,
-  document.getElementById('app')
+startSession.then(
+  function () {
+    ReactDOM.render(
+      <Provider store={ store }>
+        <Router basename="/" history={ history }>
+          <div className="page">
+            <Link to='/about' className="sample_class">about</Link>
+            <Switch>
+              <Route path='/token' component={ TokenReciever } />
+              <Route exact path='/:service([a-z,0-9,\-]+):(trash)?/:path*' component={ App } />
+              <Route exact path='/:request([^:]+)' component={ StaticPage } />
+            </Switch>
+          </div>
+        </Router>
+      </Provider>,
+      document.getElementById('app')
+    )
+  }
 )
+

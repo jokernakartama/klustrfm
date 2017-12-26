@@ -4,3 +4,4 @@
 /build
 TODO
 *.kate-swp
+/source/js/api/configs/

@@ -16,8 +16,8 @@ startSession.then(
     ReactDOM.render(
       <Provider store={ store }>
         <Router basename="/" history={ history }>
-          <div className="page">
-            <Link to='/about' className="sample_class">about</Link>
+          <div className="content">
+            <Link to='/about' className="sample_class">about</Link> <Link to='/start' className="sample_class">start</Link>
             <Switch>
               <Route path='/token' component={ TokenReciever } />
               <Route exact path='/:service([a-z,0-9,\-]+):(trash)?/:path*' component={ App } />

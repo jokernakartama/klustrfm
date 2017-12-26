@@ -60,7 +60,6 @@ export function addService (serviceName) {
   return function (dispatch) {
     var Service = serviceMap[serviceName]
     if (Service) {
-      dispatch(authorizationStart())
       Service.openAuthWindow((rawData, win) => {
         try {
           var parsed = JSON.parse(rawData)
@@ -78,7 +77,6 @@ export function addService (serviceName) {
           console.log(e)
         }
         win.close()
-        dispatch(authorizationEnd())
       })
     }
   }

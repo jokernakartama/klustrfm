@@ -376,18 +376,26 @@ class CloudAPI {
     var expires_in = /expires_in=([^&]+)/.exec(window.document.location.hash)
     var state = /state=([^&]+)/.exec(window.document.location.hash)
     var error = /error=([^&]+)/.exec(window.document.location.hash)
-    var resp = {
-      token: token,
-      error: error,
-      state: state,
-      expires_in: expires_in
-    }
-    for (let key in resp) {
-      if (resp[key] !== null) {
-        resp[key] = resp[key][1]
+    if (token === null && error === null) {
+      return false
+    } else {
+      var resp = {
+        token: token,
+        error: error,
+        state: state,
+        expires_in: expires_in
       }
+      for (let key in resp) {
+        if (resp[key] !== null) {
+          resp[key] = resp[key][1]
+        }
+      }
+      if (window.opener !== null) {
+        // the origin should  be explicitly specified instead of "*"
+        window.opener.postMessage(JSON.stringify(resp), '*')
+      }
+      return true
     }
-    window.opener.postMessage(JSON.stringify(resp), '*')
   }
 
   /**

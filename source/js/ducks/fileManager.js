@@ -90,8 +90,7 @@ export function directoryLoadingEnd () {
   }
 }
 /**
- * directoryUpdate
- * Dispatched for all list changes: changing directory, pasting/removing file
+ * Action updates the directory data
  */
 export function directoryUpdate (data) {
   return {
@@ -109,70 +108,77 @@ export function directoryUnavailable() {
     type: DIRECTORY_UNAVAILABLE
   }
 }
+
+/**
+ * Action updates the service data: name, resource path/id, whether files are trashed
+ */
 export function switchService (data) {
   return {
     type: SERVICE_SWITCHED,
-    service: data.service,
-    path: data.path,
-    isTrash: data.isTrash
+    payload: {
+      service: data.service,
+      path: data.path,
+      isTrash: data.isTrash
+    }
   }
 }
+
 /**
- * Action initiates directory files list loading
+ * Action parses the service data from url and dispatches files list update
  */
 export function parseLocation (location) {
+  console.log('location ' + location + ' parsing')
   return function (dispatch) {
     if (typeof location === 'string') {
-      const locationData = location.split(/\/(.*)/, 2)
+      const locationData = location.slice(1).split(/\/(.*)/, 2)
       const serviceData = locationData[0].split(':', 2)
       const path = locationData[1] || ''
       var isTrash = false
       var serviceName
       if (serviceData.length === 2) {
-        serviceName = serviceData[1]
+        serviceName = serviceData[0]
         isTrash = serviceData[1] === 'trash'
-        dispatch(switchService(
-          {
-            service: serviceName,
-            path: path,
-            isTrash: isTrash
-          }
-        ))
-      } else {
-        // dispatch(routingError())
       }
+      console.log(locationData)
+      dispatch(switchService({
+          service: serviceName,
+          path: path,
+          isTrash: isTrash
+        })
+      )
+      dispatch(changeDirectory(path, serviceName, isTrash))
     } else {
       // dispatch(routingError())
     }
   }
 }
+
 /**
- * Action initiates directory files list loading
+ * Action loads the directory data
  */
-export function changeDirectory (dirId, serviceName) {
+export function changeDirectory (dirId, serviceName, isTrash = false) {
   return function (dispatch) {
     const Service = getAPI(serviceName)
     if (Service) {
       dispatch(directoryLoadingStart())
       Service.getResource(dirId, {
-        success: (list, resp) => {
-          dispatch(directoryUpdate(list))
+        success: (data) => {
+          dispatch(directoryUpdate(data))
         },
         error: () => {},
         fail: () => {},
         anyway: () => {
           dispatch(directoryLoadingEnd())
         }
-      })
+      }, isTrash)
     } else {
       dispatch(directoryUnavailable())
-      console.log('ducks/filemanager: serivice is false')
     }
   }
 }
 export function selectFile (id) {
   return function (dispatch) {
-    const data = id // воще надо как-то из стейта выковыривать данные по авбрынному ид
+    const data = id
     dispatch(fileSelected(data))
   }
 }

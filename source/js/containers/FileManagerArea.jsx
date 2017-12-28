@@ -18,34 +18,12 @@ class FileManagerArea extends React.Component {
     this.changeDir = changeDirectory
   }
 
-  parseLocation (location) {
-    if (typeof location === 'string') {
-      const locationData = location.slice(1).split(/\/(.*)/, 2)
-      const serviceData = locationData[0].split(':', 2)
-      const path = locationData[1] || ''
-      var isTrash = false
-      var serviceName
-      if (serviceData.length === 2) {
-        serviceName = serviceData[0]
-        isTrash = serviceData[1] === 'trash'
-      }
-      return {
-        service: serviceName,
-        path: path,
-        isTrash: isTrash
-      }
-    } else {
-      return {}
-    }
-  }
-
   componentDidMount () {
-    const data = this.parseLocation(history.location.pathname)
+    const { parseLocation } = this.props.actions
     this.unlisten = history.listen((location) => {
-      let data = this.parseLocation(location.pathname)
-      this.changeDir(data.path, data.service)
+      parseLocation(location.pathname)
     })
-    this.changeDir(data.path, data.service)
+    parseLocation(history.location.pathname)
   }
 
   componentWillUnmount () {
@@ -55,15 +33,9 @@ class FileManagerArea extends React.Component {
   render () {
     const { filemanager } = this.props
     const { changeDirectory } = this.props.actions
-    const data = this.parseLocation(history.location.pathname)
     return (
       <section className="file-manager-area">
-        <FileList 
-          { ...filemanager }
-          getList={ changeDirectory }
-          service={ data.service }
-          path={ data.path }
-        />
+        <FileList { ...filemanager } getList={ changeDirectory } />
       </section>
     )
   }

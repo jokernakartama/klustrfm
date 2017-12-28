@@ -199,12 +199,12 @@ class YandexDisk extends CloudAPI {
   /**
    * @see YandexDisk.getFilesList
    */
-  static getResource (path, func) {
+  static getResource (path, func = {}, trash = false) {
     // just calls another method because we can get resource information later
-    this.getFilesList(path, false, func)
+    this.getFilesList(path, func, trash)
   }
 
-  static getFilesList (path, trash, func = {}) {
+  static getFilesList (path, func = {}, trash = false) {
     // normalize root path
     if (path === '') {
       path = this.names.rootPathIdentifier
@@ -239,10 +239,6 @@ class YandexDisk extends CloudAPI {
       })
       .send()
     return false
-  }
-
-  static trashList (func = {}) {
-    this.getFilesList('/', true, func)
   }
 
   /**

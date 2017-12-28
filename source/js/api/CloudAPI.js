@@ -248,8 +248,9 @@ class CloudAPI {
    * @see getFilesList
    * @param identifier {string} Resource identifier (path or id)
    * @param func {object} Object of callbacks: success, error, fail, anyway
+   * @param trash {boolean} Whether only trashed files should be included
    */ 
-  static getResource (identifier, func = {}) {
+  static getResource (identifier, func = {}, trash = false) {
   }
 
   /**
@@ -260,10 +261,10 @@ class CloudAPI {
    * @see parseList()
    * @param identifier {string} Unlike others this method uses unspecified type of parameter, because services
    * use different concepts of their hierarchy, so, for Dropbox, the folder path is enough, for Google Drive it should be used parent id.
-   * @param trash {boolean} Whether only trashed files should be included
    * @param func {object} Object of callbacks: success, error, fail, anyway
+   * @param trash {boolean} Whether only trashed files should be included
    */
-  static getFilesList (identifier, trash, func = {}) {
+  static getFilesList (identifier, func = {}, trash = false) {
   }
 
   /**

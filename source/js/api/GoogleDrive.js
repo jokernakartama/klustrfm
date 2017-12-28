@@ -233,7 +233,7 @@ class GoogleDrive extends CloudAPI {
    * @see GoogleDrive.getResourceMeta
    * @see GoogleDrive.getFilesList
    */
-  static getResource (id, func = {}) {
+  static getResource (id, func = {}, trash = false) {
     var resourceMeta
     var success = func.success
     var anyway = func.anyway
@@ -247,7 +247,7 @@ class GoogleDrive extends CloudAPI {
     var getResourceCallbacks = Object.assign({}, func, {
       success: (body) => {
         resourceMeta = this.serialize(body)
-        this.getFilesList(id, false, getFilesListCallbacks)
+        this.getFilesList(id, getFilesListCallbacks, trash)
       },
       anyway: (body, resp) => {
         if (resourceMeta === undefined && anyway) anyway(body, resp)
@@ -261,7 +261,7 @@ class GoogleDrive extends CloudAPI {
   /**
    * @see {@link https://developers.google.com/drive/v2/reference/files/list}
    */
-  static getFilesList (id, trash, func = {}) {
+  static getFilesList (id, func = {}, trash = false) {
     // normalize root id
     if (id === '' || id === '/') id = this.names.rootPathIdentifier
     var urlParams = {}

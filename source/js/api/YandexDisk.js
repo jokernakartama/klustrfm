@@ -244,8 +244,7 @@ class YandexDisk extends CloudAPI {
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/GetResourceDownloadLink}
    */
-  static getDownloadLink (path, func) {
-    /* От этого метода ожидается получить ссылку */
+  static getDownloadLink (path, func = {}) {
     AX.get(this.urls.download, {path: this.createPath(path)})
       .headers({'Authorization': 'OAuth ' + this.accessToken})
       .status({
@@ -444,7 +443,7 @@ class YandexDisk extends CloudAPI {
       path: this.createPath(path),
       overwrite: overwrite
     }
-    AX.post(this.urls.restore, urlParams)
+    AX.put(this.urls.restore, urlParams)
       .headers({'Authorization': 'OAuth ' + this.accessToken})
       .status({
         'success': [201, 202],

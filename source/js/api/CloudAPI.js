@@ -164,7 +164,7 @@ class CloudAPI {
     resource.parent = this.getParent(rawData)
     resource.isRoot = this.isRoot(rawData)
     resource.path = this.getItemPath(rawData)
-    resource.public = this.isShared(rawData)
+    resource.publicLink = this.isShared(rawData)
     return resource
   }
 
@@ -180,7 +180,7 @@ class CloudAPI {
     resource.modified = rawData[this.names.itemModifiedKey]
     resource.size = +rawData[this.names.itemSizeKey]
     resource.path = this.getItemPath(rawData)
-    resource.public = this.isShared(rawData)
+    resource.publicLink = this.isShared(rawData)
     return resource
   }
   /**

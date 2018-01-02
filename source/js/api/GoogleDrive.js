@@ -70,7 +70,7 @@ class GoogleDrive extends CloudAPI {
       'itemIsSharedKey': 'shared',
       'itemNameKey': 'title',
       'itemModifiedKey': 'modifiedDate',
-      'itemSizeKey': 'fileSize',
+      'itemSizeKey': 'quotaBytesUsed',
       'itemParentIsRootKey': 'isRoot',
       'rootPathIdentifier': 'root'
     }
@@ -89,7 +89,7 @@ class GoogleDrive extends CloudAPI {
     return rawData.parents.length === 0
   }
   static isShared (rawData) {
-    return (rawData[this.names.itemIsSharedKey] ? rawData[this.names.itemPublicUrlKey] : false)
+    return (rawData[this.names.itemIsSharedKey] ? 'https://drive.google.com/file/d/' + rawData[this.names.itemIdKey] + '/view' : false)
   }
   static getParent (rawData) {
     if (rawData.parents && rawData.parents.length) {
@@ -137,8 +137,8 @@ class GoogleDrive extends CloudAPI {
    * parameters we use the method in tasks
    * @see {@link https://developers.google.com/drive/v2/reference/files/patch}
    */
-  static patchResource (id, data, func = {}) {
-    AX.patch(this.urls.resourceMeta + id)
+  static updateResource (id, data, func = {}) {
+    AX.put(this.urls.resourceMeta + id)
       .headers({'Authorization': 'Bearer ' + this.accessToken})
       .status({
         'success': 200,
@@ -264,7 +264,9 @@ class GoogleDrive extends CloudAPI {
   static getFilesList (id, func = {}, trash = false) {
     // normalize root id
     if (id === '' || id === '/') id = this.names.rootPathIdentifier
-    var urlParams = {}
+    var urlParams = {
+      'orderBy': this.names.itemNameKey
+    }
     if (trash) {
       urlParams['q'] = 'trashed=true'
     } else {
@@ -295,10 +297,6 @@ class GoogleDrive extends CloudAPI {
     return false
   }
 
-  static trashList (func = {}) {
-    this.getFilesList('/', true, func)
-  }
-
   /**
    * @see GoogleDrive.getResourceMeta
    */
@@ -327,7 +325,7 @@ class GoogleDrive extends CloudAPI {
     var success = func.success
     var callback = Object.assign({}, func, {
       success: (body, resp) => {
-        var publicUrl = body[self.names.itemPublicUrlKey]
+        var publicUrl = body[this.names.itemPublicUrlKey]
         if (typeof success === 'function') success(publicUrl, resp)
       }
     })
@@ -337,35 +335,72 @@ class GoogleDrive extends CloudAPI {
   }
 
   /**
-   * @see GoogleDrive.patchResource
+   * @see {@link https://developers.google.com/drive/v2/reference/permissions/insert}
    */
   static publishResource (id, func = {}) {
     var data = {
-      'shared': true
+      role: 'reader',
+      type: 'anyone',
+      withLink: true
     }
-    var anyway = func.anyway
-    var succeed = false
+    var success = func.success
+    var publicUrl
     var callback = Object.assign({}, func, {
-      success: () => {
-        succeed = true
-        this.getPublicLink(id, func)
-      },
-      // func.anyway should not execute twice
-      anyway: (body, resp) => {
-        if (!succeed && anyway) anyway(body, resp)
+      success: (url, resp) => {
+        publicUrl = url
+        if (typeof success === 'function') success(publicUrl, resp)
       }
     })
-    this.patchResource(id, data, callback)
+    AX.post(this.urls.publish + id + '/permissions')
+      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .status({
+        'success': 200,
+        'error': 404,
+        'fail': ['!404', '!200'],
+        'anyway': '!200'
+      })
+      .on('success', () => {
+        this.getPublicLink(id, callback)
+      })
+      .on('fail', (body, resp) => {
+        if (typeof func.fail === 'function') func.fail(body, resp)
+      })
+      .on('error', (body, resp) => {
+        if (typeof func.error === 'function') func.error(body, resp)
+      })
+      .on('anyway', (body, resp) => {
+        if (typeof func.anyway === 'function') func.anyway(body, resp)
+      })
+      .send.json(data)
+    return false
   }
 
   /**
-   * @see GoogleDrive.patchResource
+   * @see {@link https://developers.google.com/drive/v2/reference/permissions/delete}
    */
   static unpublishResource (id, func = {}) {
-    var data = {
-      'shared': false
-    }
-    this.patchResource(id, data, func)
+    AX.delete(this.urls.unpublish + id + '/permissions/anyoneWithLink')
+      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .status({
+        'success': 204,
+        'error': 404,
+        'fail': ['!404', '!204'],
+        'anyway': 'all'
+      })
+      .on('success', (body, resp) => {
+        if (typeof func.success === 'function') func.success(body, resp)
+      })
+      .on('fail', (body, resp) => {
+        if (typeof func.fail === 'function') func.fail(body, resp)
+      })
+      .on('error', (body, resp) => {
+        if (typeof func.error === 'function') func.error(body, resp)
+      })
+      .on('anyway', (body, resp) => {
+        if (typeof func.anyway === 'function') func.anyway(body, resp)
+      })
+      .send()
+    return false
   }
 
   /**
@@ -426,49 +461,77 @@ class GoogleDrive extends CloudAPI {
   }
 
   /**
-   * @see GoogleDrive.patchResource
+   * @see GoogleDrive.updateResource
    */
   static renameResource (id, newname, func = {}, overwrite = false) {
-    if (overwrite); // Google Drive resources are id-based so they cannot be overwritted
+    if (overwrite); // Google Drive resources are id-based so they cannot be overwritten
     var data = {
       'title': newname
     }
-    this.patchResource(id, data, func)
+    var success = func.success
+    var callback = Object.assign({}, func, {
+      success: (body, resp) => {
+        var resourceMeta = this.serialize(body)
+        if (typeof success === 'function') success(resourceMeta, resp)
+      }
+    })
+    this.updateResource(id, data, callback)
   }
 
   /**
    * @see {@link https://developers.google.com/drive/v2/reference/files/copy}
    */
   static copyResourceTo (id, destination, func = {}, overwrite = false) {
-    if (overwrite); // Google Drive resources are id-based so they cannot be overwritted
-    AX.post(this.urls.copy + id + '/copy')
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
-      .status({
-        'success': 200,
-        'error': 404,
-        'fail': ['!404', '!200'],
-        'anyway': 'all'
-      })
-      .on('success', (body, resp) => {
-        if (typeof func.success === 'function') func.success(body, resp)
-      })
-      .on('fail', (body, resp) => {
-        if (typeof func.fail === 'function') func.fail(body, resp)
-      })
-      .on('error', (body, resp) => {
-        if (typeof func.error === 'function') func.error(body, resp)
-      })
-      .on('anyway', (body, resp) => {
-        if (typeof func.anyway === 'function') func.anyway(body, resp)
-      })
-      .send()
+    if (destination === '' || destination === '/') destination = this.names.rootPathIdentifier
+    if (overwrite); // Google Drive resources are id-based so they cannot be overwritten
+    var title
+    var callback = Object.assign({}, func, {
+      success: (body) => {
+        // Google Drive renames copies as `Copy of "Filename"` by default
+        // so we have to get the original name initially
+        title = body[this.names.itemNameKey]
+        var data = {
+          'parents': [{'id': destination}],
+          'title': title
+        }
+        AX.post(this.urls.copy + id + '/copy')
+          .headers({'Authorization': 'Bearer ' + this.accessToken})
+          .status({
+            'success': 200,
+            'error': 404,
+            'fail': ['!404', '!200'],
+            'anyway': 'all'
+          })
+          .on('success', (body, resp) => {
+            var resourceMeta = this.serialize(body)
+            if (typeof func.success === 'function') func.success(resourceMeta, resp)
+          })
+          .on('fail', (body, resp) => {
+            if (typeof func.fail === 'function') func.fail(body, resp)
+          })
+          .on('error', (body, resp) => {
+            if (typeof func.error === 'function') func.error(body, resp)
+          })
+          .on('anyway', (body, resp) => {
+            if (typeof func.anyway === 'function') func.anyway(body, resp)
+          })
+          .send.json(data)
+      },
+      anyway: (body, resp) => {
+        if (typeof func.anyway === 'function' && !title) func.anyway(body, resp)
+      } 
+    })
+    this.getResourceMeta(id, callback, {
+      fields: this.names.itemNameKey
+    })
     return false
   }
 
   /**
-   * @see GoogleDrive.patchResource
+   * @see GoogleDrive.updateResource
    */
   static moveResourceTo (id, destination, func = {}, overwrite = false) {
+    if (destination === '' || destination === '/') destination = this.names.rootPathIdentifier
     if (overwrite); // Google Drive resources are id-based so they cannot be overwritten
     var data = {
       'parents': [
@@ -477,7 +540,14 @@ class GoogleDrive extends CloudAPI {
         }
       ]
     }
-    this.patchResource(id, data, func)
+    var success = func.success
+    var callback = Object.assign({}, func, {
+      success: (body, resp) => {
+        var resourceMeta = this.serialize(body)
+        if (typeof success === 'function') success(resourceMeta, resp)
+      }
+    })
+    this.updateResource(id, data, callback)
   }
 
   /**

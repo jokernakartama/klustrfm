@@ -133,6 +133,13 @@ class YandexDisk extends CloudAPI {
     var destination = pathJoin(parentPath, dirName)
     var urlParams = {path: this.createPath(destination)}
     var success = func.success
+    var dirMeta
+    var callback = Object.assign({}, func, {
+      success: (body, resp) => {
+        dirMeta = this.serialize(body)
+        if (typeof success === 'function') success(dirMeta, resp)
+      }
+    })
     AX.put(this.urls.makedir, urlParams)
       .headers({'Authorization': 'OAuth ' + this.accessToken})
       .status({
@@ -143,12 +150,6 @@ class YandexDisk extends CloudAPI {
         'anyway': '!201'
       })
       .on('success', () => {
-        var callback = Object.assign(func, {
-          success: (body, resp) => {
-            var dirMeta = this.serialize(body)
-            if (typeof success === 'function') success(dirMeta, resp)
-          }
-        })
         this.getResourceMeta(destination, callback)
       })
       .on('exist', (body, resp) => {
@@ -258,7 +259,7 @@ class YandexDisk extends CloudAPI {
         if (typeof func.success === 'function') func.success(href, resp)
       })
       .on('fail', (body, resp) => {
-        if (typeof func.fail === 'function') func.fail(body, resp) // диспатчим экшн
+        if (typeof func.fail === 'function') func.fail(body, resp)
       })
       .on('error', (body, resp) => {
         if (typeof func.error === 'function') func.error(body, resp)
@@ -279,8 +280,14 @@ class YandexDisk extends CloudAPI {
    */
   static publishResource (path, func = {}) {
     var urlParams = {path: this.createPath(path)}
-    var self = this
     var success = func.success
+    var publicUrl
+    var callback = Object.assign({}, func, {
+      success: (body, resp) => {
+        publicUrl = body[this.names.itemPublicUrlKey]
+        if (typeof success === 'function') success(publicUrl, resp)
+      }
+    })
     AX.put(this.urls.publish, urlParams)
       .headers({'Authorization': 'OAuth ' + this.accessToken})
       .status({
@@ -290,16 +297,10 @@ class YandexDisk extends CloudAPI {
         'anyway': '!200' // as we use a nested request in getPublicLink if this one is succeed, this callback should not run multiple times
       })
       .on('success', () => {
-        var callback = Object.assign(func, {
-          success: (body) => {
-            var publicUrl = body[self.names.itemPublicUrlKey]
-            if (typeof success === 'function') success(publicUrl)
-          }
-        })
         this.getPublicLink(path, callback)
       })
       .on('fail', (body, resp) => {
-        if (typeof func.fail === 'function') func.fail(body, resp) // диспатчим экшн
+        if (typeof func.fail === 'function') func.fail(body, resp)
       })
       .on('error', (body, resp) => {
         if (typeof func.error === 'function') func.error(body, resp)
@@ -328,7 +329,7 @@ class YandexDisk extends CloudAPI {
         if (typeof func.success === 'function') func.success(body, resp)
       })
       .on('fail', (body, resp) => {
-        if (typeof func.fail === 'function') func.fail(body, resp) // диспатчим экшн
+        if (typeof func.fail === 'function') func.fail(body, resp)
       })
       .on('error', (body, resp) => {
         if (typeof func.error === 'function') func.error(body, resp)
@@ -425,14 +426,48 @@ class YandexDisk extends CloudAPI {
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/CopyResource}
    */
   static copyResourceTo (path, destination, func = {}, overwrite = false) {
-    this.copyOrMove(true, path, destination, func, overwrite)
+    var success = func.success
+    var anyway = func.anyway
+    var resourceMeta
+    var dataCallback = Object.assign({}, func, {
+      success: (body, resp) => {
+        resourceMeta = this.serialize(body)
+        if (typeof success === 'function') success(resourceMeta, resp)
+      }
+    })
+    var actionCallback = Object.assign({}, func, {
+      success: () => {
+        this.getResourceMeta(destination, dataCallback)
+      },
+      anyway: (body, resp) => {
+        if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
+      }
+    })
+    this.copyOrMove(true, path, destination, actionCallback, overwrite)
   }
 
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/MoveResource}
    */
   static moveResourceTo (path, destination, func = {}, overwrite = false) {
-    this.copyOrMove(false, path, destination, func, overwrite)
+    var success = func.success
+    var anyway = func.anyway
+    var resourceMeta
+    var dataCallback = Object.assign({}, func, {
+      success: (body, resp) => {
+        resourceMeta = this.serialize(body)
+        if (typeof success === 'function') success(resourceMeta, resp)
+      }
+    })
+    var actionCallback = Object.assign({}, func, {
+      success: () => {
+        this.getResourceMeta(destination, dataCallback)
+      },
+      anyway: (body, resp) => {
+        if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
+      }
+    })
+    this.copyOrMove(false, path, destination, actionCallback, overwrite)
   }
 
   /**

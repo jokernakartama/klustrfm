@@ -1,5 +1,6 @@
 /* eslint no-unused-vars: [0, { "args": "none" }] */
 import { urlStr } from '~/utilities/ajax'
+import getFileType from '~/utilities/getFileType'
 
 /**
  * @abstract
@@ -123,7 +124,7 @@ class CloudAPI {
    * Returns item path that is used for requests
    * @abstract
    * @example
-   * // For Yandex Disk just cuts the "disk:" prefix
+   * // For Yandex Disk just cuts the "disk:/" prefix
    * // Though this prefix can be omitted in queries and
    * // useless if we use the path in any service-independent format
    * // e. g. in address bar for quick access
@@ -146,7 +147,7 @@ class CloudAPI {
    * @abstract
    * @see parseDir
    * @param rawData {object}
-   * @returns {string} Returns null if resource is root
+   * @returns {(string|null)} Returns null if resource is root
    */ 
   static getParent (rawData) {
   }
@@ -163,6 +164,7 @@ class CloudAPI {
     resource.name = rawData[this.names.itemNameKey]
     resource.parent = this.getParent(rawData)
     resource.isRoot = this.isRoot(rawData)
+    resource.type = 'dir'
     resource.path = this.getItemPath(rawData)
     resource.publicLink = this.isShared(rawData)
     return resource
@@ -178,6 +180,7 @@ class CloudAPI {
     resource.id = rawData[this.names.itemIdKey]
     resource.name = rawData[this.names.itemNameKey]
     resource.modified = rawData[this.names.itemModifiedKey]
+    resource.type = getFileType(rawData[this.names.itemNameKey])
     resource.size = +rawData[this.names.itemSizeKey]
     resource.path = this.getItemPath(rawData)
     resource.publicLink = this.isShared(rawData)
@@ -189,23 +192,16 @@ class CloudAPI {
    * @returns {object}
    */
   static serialize (rawData) {
-    var serialized = {}
+    var serialized
     if (this.isList(rawData)) {
       serialized = {
-        directories: {},
-        files: {},
-        sorted: {
-          directories: [],
-          files: []
-        }
+        resources: {}
       }
       rawData[this.names.listKey].forEach((item) => {
         if (this.isDir(item)) {
-          serialized.directories[item[this.names.itemIdKey]] = this.parseDir(item)
-          serialized.sorted.directories.push(item[this.names.itemIdKey])
+          serialized.resources[item[this.names.itemIdKey]] = this.parseDir(item)
         } else if (this.isFile(item)) {
-          serialized.files[item[this.names.itemIdKey]] = this.parseFile(item)
-          serialized.sorted.files.push(item[this.names.itemIdKey])
+          serialized.resources[item[this.names.itemIdKey]] = this.parseFile(item)
         }
       })
     } else {
@@ -222,6 +218,7 @@ class CloudAPI {
 
   /**
    * Calls a callback with the response as argument (mostly do not use arguments)
+   * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
    * @abstract
    * @param parentIdentifier {string} Parent resource id or path 
    * @param dirName Name of the directory
@@ -232,6 +229,7 @@ class CloudAPI {
 
   /**
    * Gets metadata of the resource.
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @param identifier {string} Path or id, depending on the service
    * @param func {object} Object of callbacks: success, error, fail, anyway
@@ -244,6 +242,8 @@ class CloudAPI {
    * Get resource parameters by identifier. Generally, it is used for directory listing.
    * In most cases, it should get information whether the directory is root or not and get its parent identifier (path or id),
    * so the data can be calculated (if path is used) or recieved by request (if id is used, e. g. for Google Drive).
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESOURCE DATA (includes list of children in the "resources"
+   * key and own meta in the "current" key) as the first argument.
    * @abstract
    * @see getFilesList
    * @param identifier {string} Resource identifier (path or id)
@@ -256,6 +256,8 @@ class CloudAPI {
   /**
    * Appears to call function with parsed list for success and response for others as argument (mostly do not use arguments).
    * In most cases, it is called by getResource(), if the second one has succeed (if it uses request). 
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESOURCES LIST as the first argument.
+   * It CAN include the resource own data in the "current" key.
    * @abstract
    * @see getResource()
    * @see parseList()
@@ -270,6 +272,7 @@ class CloudAPI {
   /**
    * Calls a callback with the link as argument for success 
    * and response for others as argument (mostly do not use arguments)
+   * [ON SUCCESS]: This method should call the success callback with a string of the RESOURCE DOWNLOAD LINK as the first argument.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param func {object} Object of callbacks: success, error, fail, anyway
@@ -279,6 +282,7 @@ class CloudAPI {
 
   /**
    * In common, it publishes a resource, and calls function with the resource public link as argument.
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param func {object} Object of callbacks: success, error, fail, anyway
@@ -288,6 +292,7 @@ class CloudAPI {
 
   /**
    * Unpublishes resource.
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param func {object} Object of callbacks: success, error, fail, anyway
@@ -296,7 +301,8 @@ class CloudAPI {
   }
 
   /**
-   * Gets public link. This method may send request or calculate link.
+   * Gets public link. This method may send request or calculate link. Used in other methods.
+   * [ON SUCCESS]: This method can provide ANY DATA as the first argument as the data appears to be parsed in other methods.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param func {object} Object of callbacks: success, error, fail, anyway
@@ -305,7 +311,8 @@ class CloudAPI {
   }
 
   /**
-   * Calls a callback with the response as argument (mostly do not use arguments)
+   * Calls a callback with the response as argument (mostly do not use arguments).
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param func {object} Object of callbacks: success, error, fail, anyway
@@ -316,6 +323,7 @@ class CloudAPI {
 
   /**
    * In most cases, calls removeResource() with parameters
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @see removeResource()
    * @param identifier {string} Resource identifier (path or id)
@@ -325,8 +333,8 @@ class CloudAPI {
   }
 
   /**
-   * In most cases moves file to the same directory with new name
-   * or makes a patch request, if service supports this.
+   * In most cases moves file to the same directory with new name or makes a patch request, if service supports this.
+   * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
    * @abstract
    * @see moveResourceTo()
    * @param identifier {string} Resource identifier (path or id)
@@ -337,7 +345,8 @@ class CloudAPI {
   }
 
   /**
-   * Sends copy request.
+   * Sends copy request. New file should be unshared.
+   * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param destination {string} Path or id, depending on the service 
@@ -348,6 +357,7 @@ class CloudAPI {
 
   /**
    * Sends move request.
+   * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
    * @param destination {string} Path or id, depending on the service 
@@ -358,6 +368,7 @@ class CloudAPI {
 
   /**
    * Restores file from trash and calls function with resource as argument if succeed.
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @param item {object} Parsed resource object
    * @param overwrite {boolean}
@@ -367,10 +378,8 @@ class CloudAPI {
   }
 
   /**
-   * This method may not be overwritten,
-   * because of similarity of APIs.
-   * It should post object which contains a code
-   * and/or an error in window.opener
+   * This method may not be overwritten, because of similarity of APIs.
+   * It should post object which contains a code and/or an error in window.opener
    */
   static postCode () {
     var token = /access_token=([^&]+)/.exec(window.document.location.hash)
@@ -400,8 +409,7 @@ class CloudAPI {
   }
 
   /**
-   * Open authorization window and call 
-   * the callback function when gets message
+   * Open authorization window and call the callback function when gets message.
    * @param callback {function} Function that recieve data and popup window as arguments
    */
   static openAuthWindow (callback) {
@@ -441,11 +449,11 @@ class CloudAPI {
 
   /**
    * Revokes authorization.
-   * Mostly just clear session through callback,
-   * if service does not provide any revoke interface.
+   * Mostly just clear session through callback, if service does not provide any revoke interface.
    * @param callback {function}
   */
   static revokeAuthorization (callback = () => {}) {
+    delete this.accessToken
     callback()
   }
 }

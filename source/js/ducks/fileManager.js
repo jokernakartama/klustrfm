@@ -8,70 +8,55 @@ const initialState = {
     taskInProgress: false,
     path: '/',
     service: '',
+    sort: {
+      field: 'name',
+      asc: true
+    },
     isTrash: false,
-    selectedId: '', // mostly the only case when resource id can be useful
+    selectedId: false, // mostly the only case when resource id can be useful
     currentDirectory: {
       // current directory data
     },
-    resources: {
-      /* this is what be recieved throught serivice api 
-      directories: {
-        'id1': {
-          id: 'id1',
-          name: 'My pics',
-          parent: 'id0',
-          isRoot: false,
-          path: '/My pics',
-          public: false
-        },
-        'id2': {
-          id: 'id1',
-          name: 'ma crap',
-          parent: 'id0',
-          isRoot: false,
-          path: '/ma crap',
-          public: 'http://ontuihncp.ht/athuaheud'
-        },
-      },
-      files: {
-        'id3': {
-          id: 'id3',
-          name: 'notes.txt',
-          modified: '25 Oct 2014',
-          size: 2534,
-          path: '/notes.txt',
-          public: false
-        },
-        'id4': {
-          id: 'id4',
-          name: 'avatar.jpg',
-          modified: '25 Oct 2014',
-          size: 5461654,
-          path: '/avatar.jpg',
-          public: false
-        },
-      }
-      */
-    }        
+    resources: {},     
 }
 export const SERVICE_SWITCHED = 'filemanager::service_switched'
 export const DIRECTORY_LOADING_START = 'filemanager::directory_loading_start'
 export const DIRECTORY_LOADING_END = 'filemanager::directory_loading_end'
 export const DIRECTORY_UPDATE = 'filemanager::directory_update'
 export const DIRECTORY_UNAVAILABLE = 'filemanager::directory_unavailable'
-export const DIRECTORY_RESOURCES_SORT = 'filemanager::directory_resources'
+export const DIRECTORY_RESOURCES_SORT = 'filemanager::directory_resources_sort'
 export const RESOURCE_PATCH_START = 'filemanager::resource_patch_start'
 export const RESOURCE_PATCH_END = 'filemanager::resource_patch_end'
 export const RESOURCE_UPDATE = 'filemanager::resource_update'
 export const RESOURCE_SELECT = 'filemanager::resource_select'
-export const HIDE_RESOURCE_ACTION_PANEL = 'filemanager::hide_resource_action_panel'
-export const CHANGE_DIRECTORY_DATA = 'filemanager::change_directory_data'
+
+/**
+ * Reserializes state.
+ * Useful in some actions which move resource from the current directory.
+ * @param state {object} Current state
+ * @returns {(object|boolean)} Resource data
+ */
+function getResourceDataFromState (state) {
+  const selected = (state.resources && state.resources[state.selectedId]) || false
+  if (!selected) {
+    return false
+  } else {
+    return {
+      id: state.selectedId,
+      path: selected.path,
+      parent: state.currentDirectory.path,
+      service: state.service,
+      isTrash: state.isTrash,
+      isDir: (selected.parent !== undefined)
+    }
+  }
+}
 
 // ACTIONS
 
 /**
- * Action notifies that files list area is about to update
- * Dispatched for all list changes: changing directory, pasting/removing file
+ * Notifies that files list area is about to update.
+ * Dispatched for all list changes: changing directory, pasting/removing file.
  */
 export function directoryLoadingStart () {
   return {
@@ -79,9 +64,10 @@ export function directoryLoadingStart () {
     payload: true
   }
 }
+
 /**
- * Action notifies that files list requests are succeed or failed
- * Dispatched for all list changes: changing directory, pasting/removing file
+ * Notifies that files list requests are succeed or failed.
+ * Dispatched for all list changes: changing directory, pasting/removing file.
  */
 export function directoryLoadingEnd () {
   return {
@@ -89,16 +75,35 @@ export function directoryLoadingEnd () {
     payload: false
   }
 }
+
 /**
- * Action updates the directory data
+ * Notifies that selected resource data is about to update
+ */
+export function resourcePatchStart () {
+  return {
+    type: RESOURCE_PATCH_START
+  }
+}
+
+/**
+ * Notifies that selected resource data is about to update
+ */
+export function resourcePatchEnd () {
+  return {
+    type: RESOURCE_PATCH_END
+  }
+}
+
+/**
+ * Updates the directory data.
+ * @param data {object} Current directory data
  */
 export function directoryUpdate (data) {
   return {
     type: DIRECTORY_UPDATE,
     payload: {
       current: data.current,
-      directories: data.directories,
-      files: data.files
+      resources: data.resources,
     }
   }
 }
@@ -110,7 +115,8 @@ export function directoryUnavailable() {
 }
 
 /**
- * Action updates the service data: name, resource path/id, whether files are trashed
+ * Updates the service data: name, resource path/id, whether files are trashed.
+ * @param data {object} Current directory info (as a service), parsed from url
  */
 export function switchService (data) {
   return {
@@ -124,10 +130,39 @@ export function switchService (data) {
 }
 
 /**
- * Action parses the service data from url and dispatches files list update
+ * Selects the resource.
+ * @param id {(string|boolean|array)} Resource unique id (or id's)
+ */
+export function selectResource (id) {
+  return {
+    type: RESOURCE_SELECT,
+    payload: id
+  }
+}
+
+export function updateResource (data) {
+  return {
+    type: RESOURCE_UPDATE,
+    payload: {
+      id: data.id, // unique id
+      value: data.value // new resource object
+    }
+  }
+}
+
+/**
+ * Cancels all resource selections.
+ */
+export function deselectResource () {
+  return function (dispatch) {
+    dispatch(selectResource(false))
+  }
+}
+
+/**
+ * Parses the service data from url and dispatches files list update.
  */
 export function parseLocation (location) {
-  console.log('location ' + location + ' parsing')
   return function (dispatch) {
     if (typeof location === 'string') {
       const locationData = location.slice(1).split(/\/(.*)/, 2)
@@ -139,7 +174,6 @@ export function parseLocation (location) {
         serviceName = serviceData[0]
         isTrash = serviceData[1] === 'trash'
       }
-      console.log(locationData)
       dispatch(switchService({
           service: serviceName,
           path: path,
@@ -154,12 +188,13 @@ export function parseLocation (location) {
 }
 
 /**
- * Action loads the directory data
+ * Loads the directory data.
  */
 export function changeDirectory (dirId, serviceName, isTrash = false) {
   return function (dispatch) {
     const Service = getAPI(serviceName)
     if (Service) {
+      dispatch(deselectResource())
       dispatch(directoryLoadingStart())
       Service.getResource(dirId, {
         success: (data) => {
@@ -176,10 +211,188 @@ export function changeDirectory (dirId, serviceName, isTrash = false) {
     }
   }
 }
-export function selectFile (id) {
+
+export function sortResourcesList(field = 'name', asc = true) {
+  return {
+    type: DIRECTORY_RESOURCES_SORT,
+    payload: {
+      field,
+      asc
+    }
+  }
+}
+
+/**
+ * Removes or delete permanently the selected resource and dispatches directory update.
+ * @param state {object}
+ * @param permanently {boolean} Whether the resource should be deleted permanently
+ * or moved to trash (depends on service)
+ */
+export function removeResource (state, permanently = false) {
   return function (dispatch) {
-    const data = id
-    dispatch(fileSelected(data))
+    const resource = getResourceDataFromState(state)
+    const Service = getAPI(resource.service)
+    if (Service && resource) {
+      // dispatch(directoryLoadingStart())
+      Service.removeResource(resource.path, {
+        success: () => {
+          dispatch(changeDirectory(resource.parent, resource.service, resource.isTrash))
+        },
+        error: () => {},
+        fail: () => {},
+        anyway: () => {
+          // dispatch(directoryLoadingEnd())
+        }
+      })
+    } else {
+      dispatch(directoryUnavailable())
+    }
+  }
+}
+
+/**
+ * Restores the selected resource and dispatches directory update.
+ * @param state {object}
+ * @param overwrite {boolean} Whether the resource should be overwrite another resource when restores
+ */
+export function restoreResource (state, overwrite = false) {
+  return function (dispatch) {
+    const resource = getResourceDataFromState(state)
+    const Service = getAPI(resource.service)
+    if (Service && resource) {
+      // dispatch(directoryLoadingStart())
+      Service.restoreResource(resource.path, {
+        success: () => {
+          dispatch(changeDirectory(resource.parent, resource.service, resource.isTrash))
+        },
+        exist: () => {
+          // any dialog to submit file overwrite or not
+        },
+        error: () => {},
+        fail: () => {},
+        anyway: () => {
+          // dispatch(directoryLoadingEnd())
+        }
+      })
+    } else {
+      dispatch(directoryUnavailable())
+    }
+  }
+}
+
+/**
+ * Initiates to download file
+ * @param state {object}
+ */
+export function downloadResource (state) {
+  return function (dispatch) {
+    const resource = getResourceDataFromState(state)
+    const Service = getAPI(resource.service)
+    if (Service && resource) {
+      // dispatch(directoryLoadingStart())
+      Service.getDownloadLink(resource.path, {
+        success: (href) => {
+          window.location.href = href
+        },
+        error: () => {},
+        fail: () => {},
+        anyway: () => {
+          // dispatch(directoryLoadingEnd())
+        }
+      })
+    } else {
+      dispatch(directoryUnavailable())
+    }
+  }
+}
+
+/**
+ * Publishes resource and modify its publicLink value
+ * @param state {object}
+ */
+export function publishResource (state) {
+  return function (dispatch) {
+    const resource = getResourceDataFromState(state)
+    const Service = getAPI(resource.service)
+    if (Service && resource) {
+      dispatch(resourcePatchStart())
+      Service.publishResource(resource.path, {
+        success: (url) => {
+          dispatch(updateResource({
+            id: resource.id,
+            value: { 'publicLink': url }
+          }))
+        },
+        error: () => {},
+        fail: () => {},
+        anyway: () => {
+          dispatch(resourcePatchEnd())
+        }
+      })
+    } else {
+      dispatch(directoryUnavailable())
+    }
+  }
+}
+
+
+/**
+ * Unpublishes resource
+ * @param state {object}
+ */
+export function unpublishResource (state) {
+  return function (dispatch) {
+    const resource = getResourceDataFromState(state)
+    const Service = getAPI(resource.service)
+    if (Service && resource) {
+      dispatch(resourcePatchStart())
+      Service.unpublishResource(resource.path, {
+        success: () => {
+          dispatch(updateResource({
+            id: resource.id,
+            value: { 'publicLink': false }
+          }))
+        },
+        error: () => {},
+        fail: () => {},
+        anyway: () => {
+          dispatch(resourcePatchEnd())
+        }
+      })
+    } else {
+      dispatch(directoryUnavailable())
+    }
+  }
+}
+
+/**
+ * 
+ * @param state {object}
+ * @param value {string} New resource name
+ * @param overwrite {boolean} Whether an existed resource should be overwritten
+ */
+export function renameResource (state, value, overwrite = false) {
+  return function (dispatch) {
+    const resource = getResourceDataFromState(state)
+    const Service = getAPI(resource.service)
+    if (Service && resource) {
+      dispatch(resourcePatchStart())
+      Service.renameResource(resource.path, value, {
+        success: (data) => {
+          dispatch(updateResource({
+            id: resource.id,
+            value: data
+          }))
+        },
+        error: () => {},
+        fail: () => {},
+        anyway: () => {
+          dispatch(resourcePatchEnd())
+        }
+      }, overwrite)
+    } else {
+      dispatch(directoryUnavailable())
+    }
   }
 }
 
@@ -210,14 +423,19 @@ const actionsMap = {
     return {
       ...state,
       currentDirectory: action.payload.current,
-      directories: action.payload.directories,
-      files: action.payload.files
+      resources: action.payload.resources
     }
   },
   [DIRECTORY_UNAVAILABLE]: (state) => {
     return {
       ...state,
       currentDirectory: false
+    }
+  },
+  [DIRECTORY_RESOURCES_SORT]: (state, action) => {
+    return {
+      ...state,
+      sort: action.payload
     }
   },
   [RESOURCE_PATCH_START]: (state) => {
@@ -234,24 +452,20 @@ const actionsMap = {
   },
   [RESOURCE_UPDATE]: (state, action) => {
     // copy resources list to modify
-    var resources = Object.assign({}, state[action.payload.key])
-    resources[action.payload.resource][action.payload.field] = [action.payload.data]
+    var list = Object.assign({}, state.resources)
+    // modify the resource
+    var resource = Object.assign(list[action.payload.id], action.payload.value)
+    list[action.payload.id] = resource
     return {
       ...state,
-      resources
+      resources: list
     }
   },
-   [RESOURCE_SELECT]: (state, action) => {
+  [RESOURCE_SELECT]: (state, action) => {
     return {
       ...state,
       selectedId: action.payload
     }
-  },
-  [HIDE_RESOURCE_ACTION_PANEL]: (state) => {
-    return state
-  },
-  [CHANGE_DIRECTORY_DATA]: (state) => {
-    return state
   }
 }
 

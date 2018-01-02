@@ -3,9 +3,9 @@ import Promise from 'Promise'
 /**
  * Initiates the session. As it adds event listeners,
  * it should be called once at the beginning.
- * Because of delay while reading changed localStorage data (about 0.2-0.5s, but for unknown reasons 0.1s is enough),
+ * Because of delay while reading changed localStorage data (about 0.2-0.5s, but sometimes for unknown reasons 0.1s is enough),
  * functions that use getKey and setKey should be called by timeout, so the function
- * wrapped in Promise.
+ * wrapped in Promise. This way (timeout) is controversial but works.
  */
 export const start = new Promise(function (resolve) {
   let isAlreadyRecieved = false
@@ -28,9 +28,10 @@ export const start = new Promise(function (resolve) {
       isAlreadyRecieved = true
     }
   })
+
   window.setTimeout(() => {
     resolve()
-  }, 200)
+  }, 1000)
 })
 
 export function getKey (key) {

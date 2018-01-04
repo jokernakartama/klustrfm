@@ -1,7 +1,13 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import Directory from '~/components/filemanager/Directory'
-import File from '~/components/filemanager/File'
+import Resource from '~/components/filemanager/Resource'
+import { getFileExtention } from '~/utilities/getFileType'
+
+const DIR_TYPE_NAME = 'dir'
+const ROOT_LINK_TYPE_NAME = 'rootlink'
+const DEFAULT_SORT_FIELD = 'name'
+const TYPE_FIELD_NAME = 'type'
+const PUBLIC_LINK_FIELD_NAME = 'publicLink'
 
 export default class FilesList extends React.Component {
   static propTypes = {
@@ -11,76 +17,130 @@ export default class FilesList extends React.Component {
       PropTypes.object,
       PropTypes.bool
     ]),
-    files: PropTypes.object,
-    directories: PropTypes.object,
+    isTrash: PropTypes.bool,
+    resources: PropTypes.object,
     getList: PropTypes.func,
+    selectResource: PropTypes.func,
+    selectedId: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.bool
+    ]),
+    sort: PropTypes.object,
     isLoading: PropTypes.bool
   }
   
-  componentDidMount () {
-    const { path, service, getList } = this.props
-    getList(path, service)
+  sortBy (o, field = DEFAULT_SORT_FIELD, asc = true) {
+    var sorted = Object.keys(o)
+    sorted.sort(function (a, b) {
+      var j = o[a][field]
+      var k = o[b][field]
+      if (!j || !k) {
+        j = Boolean(!j)
+        k = Boolean(!k)
+      }
+      if ((o[a].type === DIR_TYPE_NAME && o[b].type !== DIR_TYPE_NAME) || (o[a].type !== DIR_TYPE_NAME && o[b].type === DIR_TYPE_NAME)) {
+        // directories first
+        return o[b].type === DIR_TYPE_NAME
+      } else {
+        if (o[a].type === DIR_TYPE_NAME && o[b].type === DIR_TYPE_NAME) {
+          // directories can be sorted only by name
+          if (field === DEFAULT_SORT_FIELD && !asc) {
+            return o[b].name > o[a].name
+          } else if (field === PUBLIC_LINK_FIELD_NAME) {
+            if (asc) {
+              return j > k
+            } else {
+              return k > j
+            }
+          } else {
+            return o[a].name > o[b].name
+          }
+        } else {
+          if (field === TYPE_FIELD_NAME) {
+            if (asc) {
+              return getFileExtention(o[a].name) > getFileExtention(o[b].name)
+            } else {
+              return getFileExtention(o[b].name) > getFileExtention(o[a].name)
+            }
+          } else {
+            if (asc) {
+              return j > k
+            } else {
+              return k > j
+            }
+          }
+        }
+      }
+    })
+    return sorted
   }
 
   getCurrentDirectory () {
-    const { path, files, directories, currentDirectory, service, isLoading } = this.props
+    const {
+      resources,
+      currentDirectory,
+      service,
+      sort,
+      isLoading,
+      selectResource,
+      isTrash,
+      selectedId
+    } = this.props
+
     if (isLoading) {
       return <div className="filelist__loading">LOADING...</div>
     } else {
       if (currentDirectory) {
-        var directoryList
-        var fileList
-        if (directories) {
-          directoryList = Object.keys(directories).map((id, index) => {
+        var resourcesList
+        if (resources) {
+          resourcesList = this.sortBy(resources, sort.field, sort.asc).map((id, index) => {
             return (
-              <Directory
-                key={ index }
+              <Resource
                 id={ id }
-                name={ directories[id].name }
-                publicLink={ directories[id].public }
-                parent={ directories[id].parent }
-                isRoot={ directories[id].isRoot }
-                path={ directories[id].path }
+                isRoot={ resources[id].isRoot }
+                isSelected={ id === selectedId}
+                isTrash={ isTrash }
+                key={ index }
+                modified={ resources[id].modified }
+                name={ resources[id].name }
+                parent={ resources[id].parent }
+                path={ resources[id].path }
+                publicLink={ resources[id].publicLink }
+                preview={ (resources[id].type === 'picture' || resources[id].type === 'image') ? resources[id].preview : null }
+                select={ () => { selectResource(id) } }
                 service={ service }
-              />
-            )
-          })
-        }
-        if (files) {
-          fileList = Object.keys(files).map((id, index) => {
-            return (
-              <File
-                key={ index }
-                id={ id }
-                name={ files[id].name }
-                modified={ files[id].modified }
-                size={ files[id].size }
-                path={ files[id].path }
-                publicLink={ files[id].public }
+                size={ resources[id].size }
+                type={ resources[id].type }
               />
             )
           })
         }
         return (
-          <div className="eto_vremennyj_wrapper">
-          <h1>The path is { path }, service is { service || 'UNDEFINED' }</h1>
-          <div className="data">
+          <div className="filelist">
             { !currentDirectory.isRoot
               && currentDirectory.parent !== null
               && currentDirectory.parent !== undefined
-              && <Directory
+              && !isTrash
+              && <Resource
                   name="../"
                   path={ currentDirectory.parent }
+                  type={ ROOT_LINK_TYPE_NAME }
                   service={ service }
                 />
             }
-            {directoryList} 
-            {fileList}
-          </div>
+            { isTrash
+              && <Resource
+                  name="../"
+                  path=''
+                  type={ ROOT_LINK_TYPE_NAME }
+                  service={ service }
+                />
+            }
+            {resourcesList}
           </div>
         )
       } else {
-        return 'Directory or service is unavailable'
+        return 'Directory or service is unavailable (currentDirectory is false)'
       }
     }
   }

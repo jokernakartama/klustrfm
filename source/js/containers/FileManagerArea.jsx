@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types'
 import FileList from '~/components/filemanager/FileList'
+import ResourceInfo from '~/components/filemanager/ResourceInfo'
+import SortBar from '~/components/filemanager/SortBar'
 import { history } from '~/utilities/history'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
@@ -32,10 +34,36 @@ class FileManagerArea extends React.Component {
 
   render () {
     const { filemanager } = this.props
-    const { changeDirectory } = this.props.actions
+    const {
+      changeDirectory,
+      selectResource,
+      removeResource,
+      restoreResource,
+      renameResource,
+      downloadResource,
+      sortResourcesList,
+      publishResource,
+      unpublishResource
+    } = this.props.actions
+    const sort = filemanager.sort
+
+    const selectedResource = (filemanager.resources && filemanager.resources[filemanager.selectedId]) || {}
     return (
       <section className="file-manager-area">
-        <FileList { ...filemanager } getList={ changeDirectory } />
+        <SortBar { ...sort } order={ sortResourcesList } />
+        <FileList { ...filemanager } getList={ changeDirectory } selectResource={ selectResource } />
+        { filemanager.selectedId 
+          && <ResourceInfo {...selectedResource}
+            isTrash={ filemanager.isTrash }
+            taskInProgress={ filemanager.taskInProgress }
+            remove={ () => removeResource(filemanager) }
+            restore={ () => restoreResource(filemanager) }
+            rename={ (newName) => renameResource(filemanager, newName)}
+            download={ () => downloadResource(filemanager) }
+            publish={ () => publishResource(filemanager) }
+            unpublish={ () => unpublishResource(filemanager) }
+          /> 
+        }
       </section>
     )
   }

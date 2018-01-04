@@ -200,7 +200,10 @@ export function changeDirectory (dirId, serviceName, isTrash = false) {
         success: (data) => {
           dispatch(directoryUpdate(data))
         },
-        error: () => {},
+        error: () => {
+          // should be not found
+          dispatch(directoryUnavailable())
+        },
         fail: () => {},
         anyway: () => {
           dispatch(directoryLoadingEnd())
@@ -350,7 +353,7 @@ export function unpublishResource (state) {
         success: () => {
           dispatch(updateResource({
             id: resource.id,
-            value: { 'publicLink': false }
+            value: { 'publicLink': null }
           }))
         },
         error: () => {},

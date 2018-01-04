@@ -13,33 +13,42 @@ const VIDEO = 'video'
 const WEBPAGE = 'webpage'
 
 const extTypes = {
-  '7z': ARCHIVE,
-  'aac': AUDIO,
-  'avi': VIDEO,
-  'bmp': IMAGE,
-  'csv': DOCUMENT,
-  'doc': DOCUMENT,
-  'docx': DOCUMENT,
-  'htm': WEBPAGE,
-  'html': WEBPAGE,
-  'jpg': PICTURE,
-  'js': SCRIPT,
-  'json': PLAIN_TEXT,
-  'png': PICTURE,
-  'psd': IMAGE,
-  'svg': IMAGE,
-  'svgz': IMAGE,
-  'mp3': AUDIO,
-  'rtf': DOCUMENT,
-  'sh': SCRIPT,
-  'txt': PLAIN_TEXT,
+  '.7z': ARCHIVE,
+  '.aac': AUDIO,
+  '.avi': VIDEO,
+  '.bmp': IMAGE,
+  '.csv': DOCUMENT,
+  '.doc': DOCUMENT,
+  '.docx': DOCUMENT,
+  '.gz': ARCHIVE,
+  '.htm': WEBPAGE,
+  '.html': WEBPAGE,
+  '.jpg': PICTURE,
+  '.js': SCRIPT,
+  '.json': PLAIN_TEXT,
+  '.png': PICTURE,
+  '.gif': PICTURE,
+  '.psd': IMAGE,
+  '.svg': IMAGE,
+  '.svgz': IMAGE,
+  '.mp3': AUDIO,
+  '.rtf': DOCUMENT,
+  '.rar': ARCHIVE,
+  '.sh': SCRIPT,
+  '.php': SCRIPT,
+  '.txt': PLAIN_TEXT,
+  '.zip': ARCHIVE
+}
+
+export function getFileExtention (name) {
+  var ext = /(\.?[^.]+\.?)$/.exec(name)
+  if (ext !== null) {
+    return ext[1].toLowerCase() || name
+  } else {
+    return name
+  }
 }
 
 export default function (name) {
-  var ext = /\.?([^.]+\.?)$/.exec(name)
-  if (ext !== null) {
-    return extTypes[ext[1].toLowerCase()] || DEFAULT_TYPE
-  } else {
-    return DEFAULT_TYPE
-  }
+  return extTypes[getFileExtention(name)] || DEFAULT_TYPE
 }

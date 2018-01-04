@@ -24,6 +24,7 @@ const extTypes = {
   '.htm': WEBPAGE,
   '.html': WEBPAGE,
   '.jpg': PICTURE,
+  '.jpeg': PICTURE,
   '.js': SCRIPT,
   '.json': PLAIN_TEXT,
   '.png': PICTURE,

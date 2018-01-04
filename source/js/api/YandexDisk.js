@@ -61,6 +61,7 @@ class YandexDisk extends CloudAPI {
       'itemTypeKey': 'type',
       'itemDirKey': 'dir',
       'itemPublicUrlKey': 'public_url',
+      'itemPreviewKey': 'preview',
       'itemFileKey': 'file',
       'itemNameKey': 'name',
       'itemModifiedKey': 'modified',
@@ -83,7 +84,7 @@ class YandexDisk extends CloudAPI {
     return itemPath === '/' || itemPath === ''
   }
   static isShared (rawData) {
-    return rawData[this.names.itemPublicUrlKey] || false
+    return rawData[this.names.itemPublicUrlKey] || null
   }
   static getParent (rawData) {
     var itemPath = this.getItemPath(rawData)

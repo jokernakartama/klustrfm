@@ -58,6 +58,7 @@ class CloudAPI {
    * @property itemFileKey {string} value to consider resource as file
    * @property itemNameKey {string} key to get resource name
    * @property itemModifiedKey {string} key to get resource date
+   * @property itemPreviewKey {string} key to get resource preview
    * @property itemSizeKey {string} key to get resource size
    * @example
    * return {
@@ -71,6 +72,7 @@ class CloudAPI {
    *  'itemFileKey': 'file',
    *  'itemNameKey': 'name',
    *  'itemModifiedKey': 'modified',
+   *  'itemPreviewKey': 'preview',
    *  'itemSizeKey': 'size'
    * }
    * @returns {object}
@@ -115,7 +117,7 @@ class CloudAPI {
   /**
    * @abstract
    * @param rawData {object}
-   * @returns {(string|boolean)} Shared link or false
+   * @returns {(string|null)} Shared link or null
    */
   static isShared (rawData) {
   }
@@ -153,6 +155,16 @@ class CloudAPI {
   }
 
   /**
+   * Gets a preview picture if supported.
+   * @abstact
+   * @param rawData {object}
+   * @returns {(string|null)} Returns the preview link or null
+   */
+  static getPreview (rawData) {
+    return rawData[this.names.itemPreviewKey]
+  }
+
+  /**
    * Serializes directory data.
    * @see getItemPath
    * @param rawData {object}
@@ -183,6 +195,7 @@ class CloudAPI {
     resource.type = getFileType(rawData[this.names.itemNameKey])
     resource.size = +rawData[this.names.itemSizeKey]
     resource.path = this.getItemPath(rawData)
+    resource.preview = this.getPreview(rawData)
     resource.publicLink = this.isShared(rawData)
     return resource
   }

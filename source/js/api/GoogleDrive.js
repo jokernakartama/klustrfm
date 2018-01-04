@@ -67,6 +67,7 @@ class GoogleDrive extends CloudAPI {
       'itemTypeKey': 'mimeType',
       'itemDirKey': 'application/vnd.google-apps.folder',
       'itemPublicUrlKey': 'alternateLink',
+      'itemPreviewKey': 'thumbnailLink',
       'itemIsSharedKey': 'shared',
       'itemNameKey': 'title',
       'itemModifiedKey': 'modifiedDate',
@@ -89,7 +90,9 @@ class GoogleDrive extends CloudAPI {
     return rawData.parents.length === 0
   }
   static isShared (rawData) {
-    return (rawData[this.names.itemIsSharedKey] ? 'https://drive.google.com/file/d/' + rawData[this.names.itemIdKey] + '/view' : false)
+    // i prefer to return empirically obtained link than the "alternateLink" key value,
+    // because sometimes it rather refer to Google Docs than viewer
+    return (rawData[this.names.itemIsSharedKey] ? 'https://drive.google.com/file/d/' + rawData[this.names.itemIdKey] + '/view' : null)
   }
   static getParent (rawData) {
     if (rawData.parents && rawData.parents.length) {

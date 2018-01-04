@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 
 class Partition extends React.Component {
   static propTypes = {
+    active: PropTypes.bool,
     name: PropTypes.string,
     mounted: PropTypes.bool,
     mount: PropTypes.func,
@@ -30,9 +31,9 @@ class Partition extends React.Component {
   }
   
   render () {
-    const { name } = this.props
+    const { name, active } = this.props
     return (
-          <li className={ 'service-list__service' + ' service-name_' + name }>
+          <li className={ 'service-list__service' + ' service-name_' + name + (active ? ' service-list__service_active' : '') }>
             <span className="service-list__link">
               <i className={ 'service-list__icon ' +  ' icon_' + name }></i>
               <Link to={'/' + name + ':/'}>{ name }</Link>

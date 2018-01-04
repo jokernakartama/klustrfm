@@ -1,0 +1,119 @@
+.filelist
+  -webkit-touch-callout: none
+  -webkit-user-select: none
+  -khtml-user-select: none
+  -moz-user-select: none
+  -ms-user-select: none
+  user-select: none
+
+  &__item
+    display: inline-block
+    text-decoration: none
+    outline: none
+    width: 120px
+    vertical-align: top
+    text-align: center
+    padding: 5px
+  
+  &__item-name
+    font-size: 12px
+    overflow: hidden
+    display: block
+    line-height: 1em
+    padding: 5px 0 2px
+    text-overflow: ellipsis
+    
+    ^[-1]__item_selected &
+      color: dodgerblue
+
+  &__icon
+    height: 60px
+    width: 60px
+    margin: auto
+    position: relative
+    
+    ^[-1]__item_selected &
+      box-shadow: 0 0 0 3px dodgerblue
+      
+  &__marker
+    position: absolute
+    background-color: white
+    border: 1px solid black
+    height: 24px
+    width: 24px
+    border-radius: 50%
+    line-height: 24px
+    font-size: 20px
+    
+    &_public
+      top: -10px
+      right: -10px
+      
+    &_trashed
+      top: -10px
+      right: 14px
+    
+
+  &__preview
+    &-wrapper
+      display: flex
+      justify-content: center
+      align-items: center
+      overflow: hidden
+      height: 100%
+      width: 100%
+      background-color: black
+      font-size: 0px
+    &-img
+      max-width: 100%
+      max-height: 100%
+
+.icon
+  background-repeat: no-repeat
+  
+  &_dir
+    background-color: gold
+    
+  &_file
+    background-color: #eee
+  
+  &_picture
+    background-color: thistle
+  
+  &_image
+    background-color: pink
+    
+  &_webpage
+    background-color: skyblue
+    
+  &_script
+    background-color: #aaa
+    
+  &_plaintext
+    background-color: #f5f5f5
+    
+  &_audio
+   background-color: salmon
+   
+  &_archive
+    background-color: mediumseagreen
+   
+  &_rootlink
+    background-color: gold
+    &::before
+      content: "↥"
+      font-size: 28px
+      color: black
+
+  &_public
+    &::before
+      content: '\1f464'
+      font-style: normal
+      display: inline-block
+    
+  &_trashed
+    &::before
+      content: '\2672'
+      font-style: normal
+      display: inline-block
+  

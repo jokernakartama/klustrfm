@@ -3,7 +3,7 @@ import getAPI from '~/api/index.js'
 
 // INITIAL STATE
 
-const initialState = {
+export const initialState = {
     isLoading: false,
     taskInProgress: false,
     path: '/',
@@ -60,8 +60,7 @@ function getResourceDataFromState (state) {
  */
 export function directoryLoadingStart () {
   return {
-    type: DIRECTORY_LOADING_START,
-    payload: true
+    type: DIRECTORY_LOADING_START
   }
 }
 
@@ -71,8 +70,7 @@ export function directoryLoadingStart () {
  */
 export function directoryLoadingEnd () {
   return {
-    type: DIRECTORY_LOADING_END,
-    payload: false
+    type: DIRECTORY_LOADING_END
   }
 }
 
@@ -140,15 +138,6 @@ export function selectResource (id) {
   }
 }
 
-export function updateResource (data) {
-  return {
-    type: RESOURCE_UPDATE,
-    payload: {
-      id: data.id, // unique id
-      value: data.value // new resource object
-    }
-  }
-}
 
 /**
  * Cancels all resource selections.
@@ -156,6 +145,16 @@ export function updateResource (data) {
 export function deselectResource () {
   return function (dispatch) {
     dispatch(selectResource(false))
+  }
+}
+
+export function updateResource (data) {
+  return {
+    type: RESOURCE_UPDATE,
+    payload: {
+      id: data.id, // unique id
+      value: data.value // new resource object
+    }
   }
 }
 

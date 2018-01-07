@@ -360,9 +360,11 @@ class CloudAPI {
   /**
    * Sends copy request. New file should be unshared.
    * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
+   * [ON EXIST]: If this method can call "exist" function it should call the exist callback with the path of the resource that will replace existed.
+   * Make sence in path-based service api's.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
-   * @param destination {string} Path or id, depending on the service 
+   * @param destination {string} Path or id of parent directory
    * @param func {object} Object of callbacks: success, error, exist, fail, anyway
    */
   static copyResourceTo (identifier, destination, func = {}, overwrite = false) {
@@ -371,9 +373,11 @@ class CloudAPI {
   /**
    * Sends move request.
    * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
+   * [ON EXIST]: If this method can call "exist" function it should call the exist callback with the path of the resource that will replace existed.
+   * Make sence in path-based service api's.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
-   * @param destination {string} Path or id, depending on the service 
+   * @param destination {string} Path or id of parent directory
    * @param func {object} Object of callbacks: success, error, exist, fail, anyway
    */
   static moveResourceTo (identifier, destination, func = {}, overwrite = false) {

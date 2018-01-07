@@ -1,5 +1,5 @@
 import React from 'react'
-import CloudAPI from '~/api/CloudAPI'
+import { CloudAPI } from '~/api'
 
 class TokenReciever extends React.Component {
   render () {

@@ -1,6 +1,6 @@
 import CloudAPI from './CloudAPI'
 import AX from '~/utilities/ajax'
-import { googleDrive } from './index.js'
+import googleDriveConfig from './configs/GoogleDrive.config'
 
 /**
  * @class
@@ -14,10 +14,9 @@ class GoogleDrive extends CloudAPI {
     return {
       winHeight: '600',
       winWidth: '800',
-      clientId: googleDrive.id,
-      clientSecret: googleDrive.secret,
-      stateName: googleDrive.name,
-      redirectURI: googleDrive.redirectURI,
+      clientId: googleDriveConfig.id,
+      stateName: googleDriveConfig.name,
+      redirectURI: googleDriveConfig.redirectURI,
       listLimit: 99999,
       noRefreshBorder: 86400, // a day should be enough
       expirationHoard: 30

@@ -1,7 +1,7 @@
 import CloudAPI from './CloudAPI'
 import AX from '~/utilities/ajax'
-import { default as pathJoin, dirname } from '~/utilities/path.join'
-import { yandexDisk } from './index.js'
+import { default as pathJoin, dirname, getNameFromPath } from '~/utilities/path.join'
+import yandexDiskConfig from './configs/YandexDisk.config'
 
 /**
  * @class
@@ -15,9 +15,9 @@ class YandexDisk extends CloudAPI {
     return {
       winHeight: '600',
       winWidth: '800',
-      clientId: yandexDisk.id,
-      clientSecret: yandexDisk.secret,
-      stateName: yandexDisk.name,
+      clientId: yandexDiskConfig.id,
+      clientSecret: yandexDiskConfig.secret,
+      stateName: yandexDiskConfig.name,
       listLimit: 99999
     }
   }
@@ -399,7 +399,12 @@ class YandexDisk extends CloudAPI {
         if (typeof func.success === 'function') func.success(body, resp)
       })
       .on('exist', (body, resp) => {
-        if (typeof func.exist === 'function') func.exist(body, resp)
+        if (typeof func.error === 'function' && body.error === 'DiskPathDoesntExistsError') {
+          // Yandex Disk does not return 404 code if the resource does not exists.
+          func.error(body, resp)
+        } else if (typeof func.exist === 'function') {
+          func.exist(body, resp)
+        }
       })
       .on('fail', (body, resp) => {
         if (typeof func.fail === 'function') func.fail(body, resp)
@@ -415,20 +420,40 @@ class YandexDisk extends CloudAPI {
   }
 
   /**
-   * @see YandexDisk.moveResourceTo
+   * This method is like YandexDisk.moveResourceTo
    */
   static renameResource (resourcePath, newname, func, overwrite = false) {
     var parent = dirname(resourcePath)
     var destination = pathJoin(parent, newname)
-    this.moveResourceTo(resourcePath, destination, func, overwrite)
+    var success = func.success
+    var anyway = func.anyway
+    var resourceMeta
+    var dataCallback = Object.assign({}, func, {
+      success: (body, resp) => {
+        resourceMeta = this.serialize(body)
+        if (typeof success === 'function') success(resourceMeta, resp)
+      }
+    })
+    var actionCallback = Object.assign({}, func, {
+      success: () => {
+        this.getResourceMeta(destination, dataCallback)
+      },
+      anyway: (body, resp) => {
+        if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
+      }
+    })
+    this.copyOrMove(false, resourcePath, destination, actionCallback, overwrite)
   }
 
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/CopyResource}
    */
   static copyResourceTo (path, destination, func = {}, overwrite = false) {
+    var resourceName = getNameFromPath(path)
+    var newPath = pathJoin(destination, resourceName)
     var success = func.success
     var anyway = func.anyway
+    var exist  = func.exist
     var resourceMeta
     var dataCallback = Object.assign({}, func, {
       success: (body, resp) => {
@@ -438,21 +463,28 @@ class YandexDisk extends CloudAPI {
     })
     var actionCallback = Object.assign({}, func, {
       success: () => {
-        this.getResourceMeta(destination, dataCallback)
+        this.getResourceMeta(newPath, dataCallback)
+      },
+      exist: (body, resp) => {
+        if (body);
+        if (typeof exist === 'function') exist(newPath, resp)
       },
       anyway: (body, resp) => {
         if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
       }
     })
-    this.copyOrMove(true, path, destination, actionCallback, overwrite)
+    this.copyOrMove(true, path, newPath, actionCallback, overwrite)
   }
 
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/MoveResource}
    */
   static moveResourceTo (path, destination, func = {}, overwrite = false) {
+    var resourceName = getNameFromPath(path)
+    var newPath = pathJoin(destination, resourceName)
     var success = func.success
     var anyway = func.anyway
+    var exist  = func.exist
     var resourceMeta
     var dataCallback = Object.assign({}, func, {
       success: (body, resp) => {
@@ -462,13 +494,17 @@ class YandexDisk extends CloudAPI {
     })
     var actionCallback = Object.assign({}, func, {
       success: () => {
-        this.getResourceMeta(destination, dataCallback)
+        this.getResourceMeta(newPath, dataCallback)
+      },
+      exist: (body, resp) => {
+        if (body);
+        if (typeof exist === 'function') exist(newPath, resp)
       },
       anyway: (body, resp) => {
         if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
       }
     })
-    this.copyOrMove(false, path, destination, actionCallback, overwrite)
+    this.copyOrMove(false, path, newPath, actionCallback, overwrite)
   }
 
   /**

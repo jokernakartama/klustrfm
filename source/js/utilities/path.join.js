@@ -19,8 +19,6 @@ export default function join (/* path segments */) {
     // Push new path segments.
     else newParts.push(part)
   }
-  // Preserve the initial slash if there was one.
-  if (parts[0] === '') newParts.unshift('')
   // Turn back into a single string path.
   return newParts.join('/') || (newParts.length ? '/' : '.')
 }
@@ -29,4 +27,13 @@ export default function join (/* path segments */) {
 // Trailing slashes are ignored. Leading slash is preserved.
 export function dirname (path) {
   return join(path, '..')
+}
+
+export function getNameFromPath (path) {
+  var parsed = /[^/]+$/.exec(path)
+  if (parsed !== null) {
+    return parsed[0]
+  } else {
+    return ''
+  }
 }

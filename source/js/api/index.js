@@ -1,28 +1,28 @@
 /* eslint no-unused-vars: [0, { "args": "none" }] */
 
 import { checkToken } from '~/utilities/tokenBag'
-import GoogleDrive from './GoogleDrive'
-import YandexDisk from './YandexDisk'
-import Dropbox from './Dropbox'
-import Box from './Box'
-import MicrosoftOneDrive from './MicrosoftOneDrive'
-import googleDriveConfig from './configs/GoogleDrive.config'
-import yandexDiskConfig from './configs/YandexDisk.config'
-import dropboxConfig from './configs/Dropbox.config'
-import boxConfig from './configs/Box.config'
-import microsoftOneDriveConfig from './configs/MicrosoftOneDrive.config'
+import { default as _CloudAPI } from './CloudAPI'
+import { default as _GoogleDrive } from './GoogleDrive'
+import { default as _YandexDisk } from './YandexDisk'
+import { default as _Dropbox } from './Dropbox'
+import { default as _Box } from './Box'
+import { default as _MicrosoftOneDrive } from './MicrosoftOneDrive'
 
-const GOOGLE_DRIVE_NAME = googleDriveConfig.name
-const YANDEX_DISK_NAME = yandexDiskConfig.name
-const DROPBOX_NAME = dropboxConfig.name
-const BOX_NAME = boxConfig.name
-const MICROSOFT_ONE_DRIVE_NAME = microsoftOneDriveConfig.name
+import { default as _sortList } from './sortList'
 
-export const googleDrive = googleDriveConfig
-export const yandexDisk = yandexDiskConfig
-export const dropbox = dropboxConfig
-export const box = boxConfig
-export const microsoftOneDrive = microsoftOneDriveConfig
+export const CloudAPI = _CloudAPI
+export const GoogleDrive = _GoogleDrive
+export const YandexDisk = _YandexDisk
+export const Dropbox = _Dropbox
+export const Box = _Box
+export const MicrosoftOneDrive = _MicrosoftOneDrive
+export const sortList = _sortList
+
+const GOOGLE_DRIVE_NAME = GoogleDrive.settings.stateName
+const YANDEX_DISK_NAME = YandexDisk.settings.stateName
+const DROPBOX_NAME = Dropbox.settings.stateName
+const BOX_NAME = Box.settings.stateName
+const MICROSOFT_ONE_DRIVE_NAME = MicrosoftOneDrive.settings.stateName
 
 export const serviceMap = {
   [GOOGLE_DRIVE_NAME]: GoogleDrive,
@@ -45,7 +45,7 @@ const switchService = function (service) {
     }
   } else {
     // unknown service
-    return false
+    return null
   }
 }
 

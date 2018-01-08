@@ -17,11 +17,11 @@ startSession.then(
       <Provider store={ store }>
         <Router basename="/" history={ history }>
           <div className="content">
-            <Link to='/about' className="sample_class">about</Link> <Link to='/start' className="sample_class">start</Link>
+            <Link to='/start' className="sample_class">start</Link>
             <Switch>
               <Route path='/token' component={ TokenReciever } />
               <Route exact path='/:service([a-z,0-9,\-]+):(trash)?/:path*' component={ App } />
-              <Route exact path='/:request([^:]+)' component={ StaticPage } />
+              <Route exact path='/:request([^:]+)' render={ (matches) => <StaticPage pageName={matches.match.params.request} /> } />
             </Switch>
           </div>
         </Router>

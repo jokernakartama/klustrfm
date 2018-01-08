@@ -1,7 +1,9 @@
 import getAPI from '~/api/index.js'
 import { serviceMap } from '~/api/index.js'
+import { setKey, getKey } from '~/utilities/session'
 
 // INITIAL STATE
+const SORTING_SETTINGS_KEY = 'sort'
 
 var buffer = {}
 for (var service in serviceMap) {
@@ -12,6 +14,8 @@ for (var service in serviceMap) {
   }
 }
 
+var sortingSettings = getKey(SORTING_SETTINGS_KEY) || { field: 'name', asc: true }
+
 export const initialState = {
   resources: {},
   currentDirectory: {
@@ -21,10 +25,7 @@ export const initialState = {
   service: '',
   buffer,
   selectedId: false,
-  sort: {
-    field: 'name',
-    asc: true
-  },
+  sort: sortingSettings,
   error: null,
   isLoading: false,
   isTrash: false
@@ -274,12 +275,18 @@ export function changeDirectory (dirId, serviceName, isTrash = false) {
 }
 
 export function sortResourcesList(field = 'name', asc = true) {
-  return {
-    type: DIRECTORY_RESOURCES_SORT,
-    payload: {
+  return function (dispatch) {
+    setKey(SORTING_SETTINGS_KEY, {
       field,
       asc
-    }
+    })
+    dispatch({
+      type: DIRECTORY_RESOURCES_SORT,
+      payload: {
+        field,
+        asc
+      }
+    })
   }
 }
 

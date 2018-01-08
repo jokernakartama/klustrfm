@@ -11,7 +11,14 @@ import configureStore from './store'
 import '@/index.styl'
 
 const store = configureStore()
-startSession.then(
+
+const SORTING_SETTINGS_KEY = 'sort'
+// exclude some sessionStorage keys from crosstabs session
+const excludedSessionKeys = [
+  SORTING_SETTINGS_KEY
+]
+
+startSession(excludedSessionKeys).then(
   function () {
     ReactDOM.render(
       <Provider store={ store }>

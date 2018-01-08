@@ -211,7 +211,7 @@ class GoogleDrive extends CloudAPI {
       .headers({'Authorization': 'Bearer ' + this.accessToken})
       .status({
         'success': [200, 304],
-        'error': [404, 200],
+        'error': 404,
         'fail': ['!404', '!200', '!304'],
         'anyway': 'all'
       })
@@ -278,7 +278,7 @@ class GoogleDrive extends CloudAPI {
       .headers({'Authorization': 'Bearer ' + this.accessToken})
       .status({
         'success': [200, 304],
-        'error': [404],
+        'error': 404,
         'fail': ['!404', '!200', '!304'],
         'anyway': 'all'
       })
@@ -304,14 +304,11 @@ class GoogleDrive extends CloudAPI {
    */
   static getDownloadLink (id, func = {}) {
     var success = func.success
-    var error = func.error
     var callback = Object.assign({}, func, {
       success: (body, resp) => {
         if (this.isFile(body) && !!body['webContentLink']) {
           let href = body['webContentLink']
           if (typeof success === 'function') success(href, resp)
-        } else {
-          if (typeof error === 'function') error(body, resp)
         }
       }
     })
@@ -441,9 +438,9 @@ class GoogleDrive extends CloudAPI {
     AX.delete(this.urls.delete + id)
       .headers({'Authorization': 'Bearer ' + this.accessToken})
       .status({
-        'success': 200,
+        'success': 204,
         'error': 404,
-        'fail': ['!404', '!200'],
+        'fail': ['!404', '!204'],
         'anyway': 'all'
       })
       .on('success', (body, resp) => {

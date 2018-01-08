@@ -374,8 +374,8 @@ class YandexDisk extends CloudAPI {
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/DeleteResource}
    */
-  static deleteResource (file, func) {
-    this.removeFile(file, func, {permanently: true})
+  static deleteResource (path, func) {
+    this.removeResource(path, func, {permanently: true})
   }
 
   static copyOrMove (copy, currentPath, destination, func, overwrite = false) {

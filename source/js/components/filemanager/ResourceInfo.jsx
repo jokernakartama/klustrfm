@@ -13,7 +13,7 @@ export default class ResourceInfo extends React.Component {
     ]),
     size: PropTypes.number,
     isTrash: PropTypes.bool,
-    taskInProgress: PropTypes.bool,
+    isFile: PropTypes.bool,
     remove: PropTypes.func,
     restore: PropTypes.func,
     rename: PropTypes.func,
@@ -43,7 +43,6 @@ export default class ResourceInfo extends React.Component {
     // React's onChange behavior is unlike native
     if (this.props.name !== e.target.value) {
       this.props.rename(e.target.value)
-      console.log('new name is "' + e.target.value + '" (old wuz "' + this.props.name + '")')
     }
     this.showRenameField(false)
   }
@@ -55,10 +54,18 @@ export default class ResourceInfo extends React.Component {
   }
   
   render () {
-    const { name, modified, publicLink, size, isTrash, taskInProgress, remove, restore, download } = this.props
+    const {
+      name,
+      modified,
+      publicLink,
+      size,
+      isTrash,
+      isFile,
+      restore,
+      download
+    } = this.props
     return (
       <div className="resource-info">
-        { taskInProgress && <div className="resource-info__loading">WAIT...</div> }
         { isTrash && 'IN TRASH' }
         Name: 
         { !this.state.readyToRename && 
@@ -77,9 +84,9 @@ export default class ResourceInfo extends React.Component {
         Share link: <input value={ publicLink || '' } readOnly="readonly" />
         <input type="checkbox" checked={ publicLink ? true : false } onChange={ () => this.togglePublicity() } /> <br />
         Modified: { modified } <br />
-        { !isTrash && <button onClick={ download }> download </button> }
-        { !isTrash && <button onClick={ remove }> remove </button> }
+        { !isTrash && isFile && <button onClick={ download }> download </button> }
         { isTrash && <button onClick={ restore }> restore </button> }
+        <br />
       </div>
     )
   }

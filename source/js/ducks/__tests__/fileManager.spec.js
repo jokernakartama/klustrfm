@@ -7,21 +7,21 @@ const createStore = configureStore([thunk])
 
 describe('ducks/fileManager.js', function() {
 
-  describe('directoryLoadingStart', function() {
-    it('should create an action to start directory loading', function () {
+  describe('requestStart', function() {
+    it('should create an action to start request', function () {
       const expected = {
-        type: dux.DIRECTORY_LOADING_START
+        type: dux.REQUEST_START
       }
-      expect(dux.directoryLoadingStart()).to.deep.equal(expected)
+      expect(dux.requestStart()).to.deep.equal(expected)
     })
   })
   
-  describe('directoryLoadingEnd', function() {
-    it('should create an action to end directory loading', function () {
+  describe('requestEnd', function() {
+    it('should create an action to end a request', function () {
       const expected = {
-        type: dux.DIRECTORY_LOADING_END
+        type: dux.REQUEST_END
       }
-      expect(dux.directoryLoadingEnd()).to.deep.equal(expected)
+      expect(dux.requestEnd()).to.deep.equal(expected)
     })
   })
   
@@ -75,7 +75,7 @@ describe('ducks/fileManager.js', function() {
   })
 
   describe('switchService', function() {
-    it('should create an action to update a service name and the path', function () {
+    it('should create an action to update the service name and the path', function () {
       const data = {
         service: 'anyservicename',
         path: 'any-dir/any-nested-dir',
@@ -135,20 +135,37 @@ describe('ducks/fileManager.js', function() {
   })
 
   describe('parseLocation', function() {
-    it('should dispatch switchService with proper data then dispatch changeDirectory', function () {
+    it('1. should clean errors', function () {
       const store = createStore({})
       const actions = store.getActions()
-      store.dispatch(dux.parseLocation('/cloud:trash/child-dir'))
+      store.dispatch(dux.parseLocation('/disk:trash/child-dir'))
       const expected = {
-        type: dux.SERVICE_SWITCHED,
-        payload: {
-          service: 'cloud',
-          path: 'child-dir',
-          isTrash: true
-        }
+        type: dux.ERROR_RECIEVED,
+        payload: null
       }
-      expect(actions).to.have.lengthOf.at.least(2)
       expect(actions[0]).to.deep.equal(expected)
+    })
+    
+    it('2. should throw a routing error if recieves not a string', function () {
+      const store = createStore({})
+      const actions = store.getActions()
+      store.dispatch(dux.parseLocation({ location: 'not-a-string' }))
+      const expected = {
+        type: dux.ERROR_RECIEVED,
+        payload: 0
+      }
+      expect(actions[1]).to.deep.equal(expected)
+    })
+    
+    it('3. should clean directory data if service has switched', function () {
+      const store = createStore({})
+      const state = store.getState()
+      const actions = store.getActions()
+      store.dispatch(dux.parseLocation('/disk:trash/child-dir', 'cloudspace'))
+      const expected = {
+        type: dux.DIRECTORY_UNAVAILABLE
+      }
+      expect(actions[1]).to.deep.equal(expected)
     })
   })
 
@@ -168,11 +185,11 @@ describe('ducks/fileManager.js', function() {
   })
 
   describe('fileManager reducer', function() {
-    it('should return initial state', function () {      
+    it('1. should return initial state', function () {      
       expect(reducer()).to.deep.equal(dux.initialState)
     })
 
-    describe('should handle actions', function() {
+    describe('2. should handle actions', function() {
       it('SERVICE_SWITCHED', function () {      
         this.skip()
       })

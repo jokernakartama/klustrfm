@@ -1,0 +1,6 @@
+export default {
+  0: 'ROUTING_ERROR',
+  1: 'UNKNOWN_SERVICE',
+  2: 'SERVICE_NOT_MOUNTED',
+  404: 'RESOURCE_NOT_FOUND'
+} 

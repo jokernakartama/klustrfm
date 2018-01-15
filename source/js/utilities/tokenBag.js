@@ -10,6 +10,7 @@ export const TOKEN_BAG_PREFIX = 'token_'
  */
 export function putToken (serviceName, data) {
   const key = TOKEN_BAG_PREFIX + serviceName
+  if (data['expires_in'] === null) data['expires_in'] = 31536000
   data['expires_at'] = expirationTime(data['expires_in'])
   session.setKey(key, data)
 }

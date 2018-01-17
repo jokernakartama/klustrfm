@@ -196,7 +196,7 @@ Object.defineProperty(AX.prototype, 'send', {
   get: function () {
     var ctx = this
     var method = function send (data, contentType = 'application/x-www-form-urlencoded') {
-      if (typeof contentType === 'string') ctx._headersMap['Content-Type'] = contentType
+      if (typeof contentType === 'string' && !ctx._headersMap['Content-Type']) ctx._headersMap['Content-Type'] = contentType
       request(ctx, data)
     }
     method.text = function sendText (data) {

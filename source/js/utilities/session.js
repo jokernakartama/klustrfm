@@ -2,6 +2,11 @@ import Promise from 'Promise'
 
 const DELAY_TIME = 1000
 
+function forceUpdate () {
+  const storage = JSON.stringify(window.sessionStorage)
+  window.localStorage.setItem('windowSessionStorage', storage)
+  window.localStorage.removeItem('windowSessionStorage')
+}
 /**
  * Initiates the session. As it adds event listeners,
  * it should be called once at the beginning.
@@ -11,7 +16,7 @@ const DELAY_TIME = 1000
  */
 export const start = function (excludedKeys = []) {
   return new Promise(function (resolve) {
-    let isAlreadyRecieved = false
+    var lastRecievedData
     if (window.sessionStorage.length === 0) {
       window.localStorage.setItem('getWindowSessionStorage', Date.now())
       window.localStorage.removeItem('getWindowSessionStorage')
@@ -23,16 +28,17 @@ export const start = function (excludedKeys = []) {
         for (let key in window.sessionStorage) {
           if (excludedKeys.indexOf(key) === -1) storage[key] = window.sessionStorage[key]
         }
-        window.localStorage.setItem('windowSessionStorage', JSON.stringify(window.sessionStorage))
+        storage = JSON.stringify(storage)
+        window.localStorage.setItem('windowSessionStorage', storage)
         window.localStorage.removeItem('windowSessionStorage')
-      } else if (event.key === 'windowSessionStorage' && event.newValue !== null && !isAlreadyRecieved) {
+      } else if (event.key === 'windowSessionStorage' && event.newValue !== null && lastRecievedData !== event.newValue) {
         // the current tab recieves other tab data
         // if sessionStorage is empty or replace existed
         var data = JSON.parse(event.newValue)
         for (let key in data) {
-          if (excludedKeys.indexOf(key) === -1) window.sessionStorage.setItem(key, data[key])
+          if (excludedKeys.indexOf(key) === -1 && key != 'length') window.sessionStorage.setItem(key, data[key])
         }
-        isAlreadyRecieved = true
+        lastRecievedData = event.newValue
       }
     })
 
@@ -61,6 +67,10 @@ export function setKey (key, value) {
     value = value.toString()
   }
   window.sessionStorage.setItem(key, value)
-  window.localStorage.setItem('windowSessionStorage', JSON.stringify(window.sessionStorage))
-  window.localStorage.removeItem('windowSessionStorage')
+  forceUpdate()
+}
+
+export function removeKey(key) {
+  delete window.sessionStorage[key]
+  forceUpdate()
 }

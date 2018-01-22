@@ -1,4 +1,4 @@
-import Promise from 'Promise'
+import Promise from 'promise-polyfill'
 
 const DELAY_TIME = 1000
 

@@ -16,13 +16,22 @@ export function putToken (serviceName, data) {
 }
 
 /**
- * Gets token from session storage
+ * Obtains token from session storage
  * @param serviceName {string}
  * @returns {object} Token data
  */
 export function ejectToken (serviceName) {
   const key = TOKEN_BAG_PREFIX + serviceName
   return session.getKey(key)
+}
+
+/**
+ * Removes token from session storage
+ * @param serviceName {string}
+ */
+export function removeToken (serviceName) {
+  const key = TOKEN_BAG_PREFIX + serviceName
+  session.removeKey(key)
 }
 
 /**

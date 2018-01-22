@@ -1,5 +1,9 @@
 /node_modules
 .directory
+.eslintignore
+.eslintrc.js
+.babelrc
+/app
 *~
 /build
 TODO

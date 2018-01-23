@@ -250,8 +250,8 @@ export function changeDirectory (dirId, serviceName, isTrash = false) {
         })
       )
     }
+    dispatch(deselectResource())
     if (Service) {
-      dispatch(deselectResource())
       Service.getResource(dirId, {
         success: (data) => {
           dispatch(directoryUpdate(data))

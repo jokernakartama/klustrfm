@@ -3,15 +3,17 @@ import thunk from 'redux-thunk'
 
 import filemanager from '~/ducks/fileManager'
 import servicePanel from '~/ducks/servicePanel'
+import modal from '~/ducks/modal'
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
 
 const rootReducer = combineReducers({
   filemanager,
-  services: servicePanel
+  services: servicePanel,
+  modal
 })
 
-export default function configureStore(initialState) {
+export function configureStore(initialState) {
   const store = createStore(
     rootReducer,
     initialState,
@@ -21,3 +23,11 @@ export default function configureStore(initialState) {
   )
   return store
 }
+
+const store = configureStore()
+
+export function dispatch (action) {
+  store.dispatch(action)
+}
+
+export default store

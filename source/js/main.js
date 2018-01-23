@@ -7,10 +7,8 @@ import { history } from '~/utilities/history'
 import App from './App'
 import TokenReciever from '~/components/TokenReciever'
 import StaticPage from '~/components/StaticPage'
-import configureStore from './store'
+import store from './store'
 import '@/index.styl'
-
-const store = configureStore()
 
 const SORTING_SETTINGS_KEY = 'sort'
 // exclude some sessionStorage keys from crosstabs session

@@ -1,5 +1,6 @@
 import React from 'react'
 import ServicePanel from './containers/ServicePanel'
+import Modal from '~/components/dialogs/Modal'
 import FileManagerArea from './containers/FileManagerArea'
 import PropTypes from 'prop-types'
 
@@ -13,6 +14,7 @@ class App extends React.Component {
       <div className="application">
         <ServicePanel />
         <FileManagerArea/>
+        <Modal />
       </div>
     )
   }

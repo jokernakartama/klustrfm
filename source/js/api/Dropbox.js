@@ -339,7 +339,7 @@ class Dropbox extends CloudAPI {
    * @see Dropbox.getResourceMeta
    * @see Dropbox.getFilesList
    */
-  static getResource (path, func = {}) {
+  static getResource (path, func = {}, trash = false) {
     var resourceMeta
     var success = func.success
     var anyway = func.anyway
@@ -355,62 +355,71 @@ class Dropbox extends CloudAPI {
     var getResourceCallbacks = Object.assign({}, func, {
       success: (body) => {
         resourceMeta = this.serialize(body)
-        this.getFilesList(path, getFilesListCallbacks)
+        this.getFilesList(path, getFilesListCallbacks, trash)
       },
       anyway: (body, resp) => {
         if (resourceMeta === undefined && anyway) anyway(body, resp)
       }
     })
-    this.getResourceMeta(path, getResourceCallbacks)
+    if (!trash) {
+      this.getResourceMeta(path, getResourceCallbacks)
+    } else {
+      if (typeof func.fail === 'function') func.fail('Not provided', null)
+      if (typeof func.anyway === 'function') func.anyway('Not provided', null)
+    }
   }
 
   /**
    * @see {@link https://www.dropbox.com/developers/documentation/http/documentation#files-list_folder}
    */
-  static getFilesList (path, func = {}) {
-    const getSharedLinksPromise = new window.Promise((resolve) => { this.getAllSharedLinks(resolve) })
-    AX.post(this.urls.filesList)
-      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
-      .status({
-        'success': 200,
-        'error': 409,
-        'fail': ['!409', '!200'],
-        'anyway': '!200'
-      })
-      .on('success', (body, resp) => {
-        var list = this.serialize(body).resources
-        var pathsArray = []
-        for (let item in list) {
-          if (list[item].type === 'picture') pathsArray.push(this.createPath(list[item].path))
-        }
-        this.getThumbnailBatch(pathsArray)
-          .then((thumbsData) => {
-            list = this.mergeThumbnailsWithList(list, thumbsData)
-            return getSharedLinksPromise
-          })
-          .then((recievedLinks) => {
-            for (let i in recievedLinks) {
-              if (recievedLinks[i][this.names.itemIdKey] in list && recievedLinks[i][this.names.itemPublicUrlKey]) {
-                list[recievedLinks[i][this.names.itemIdKey]].publicLink = recievedLinks[i][this.names.itemPublicUrlKey]
+  static getFilesList (path, func = {}, trash = false) {
+    if (!trash) {
+      const getSharedLinksPromise = new window.Promise((resolve) => { this.getAllSharedLinks(resolve) })
+      AX.post(this.urls.filesList)
+        .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
+        .status({
+          'success': 200,
+          'error': 409,
+          'fail': ['!409', '!200'],
+          'anyway': '!200'
+        })
+        .on('success', (body, resp) => {
+          var list = this.serialize(body).resources
+          var pathsArray = []
+          for (let item in list) {
+            if (list[item].type === 'picture') pathsArray.push(this.createPath(list[item].path))
+          }
+          this.getThumbnailBatch(pathsArray)
+            .then((thumbsData) => {
+              list = this.mergeThumbnailsWithList(list, thumbsData)
+              return getSharedLinksPromise
+            })
+            .then((recievedLinks) => {
+              for (let i in recievedLinks) {
+                if (recievedLinks[i][this.names.itemIdKey] in list && recievedLinks[i][this.names.itemPublicUrlKey]) {
+                  list[recievedLinks[i][this.names.itemIdKey]].publicLink = recievedLinks[i][this.names.itemPublicUrlKey]
+                }
               }
-            }
-            if (typeof func.success === 'function') func.success(list, resp)
-            if (typeof func.anyway === 'function') func.anyway(body, resp)
-          })
-          .catch()
-      })
-      .on('fail', (body, resp) => {
-        if (typeof func.fail === 'function') func.fail(body, resp)
-      })
-      .on('error', (body, resp) => {
-        if (typeof func.error === 'function') func.error(body, resp)
-      })
-      .on('anyway', (body, resp) => {
-        if (typeof func.anyway === 'function') func.anyway(body, resp)
-      })
-      .send.json({
-        path: path !== '' ? this.createPath(path) : ''
-      })
+              if (typeof func.success === 'function') func.success(list, resp)
+              if (typeof func.anyway === 'function') func.anyway(body, resp)
+            })
+            .catch((err) => {
+              if (err); //pass
+            })
+        })
+        .on('fail', (body, resp) => {
+          if (typeof func.fail === 'function') func.fail(body, resp)
+        })
+        .on('error', (body, resp) => {
+          if (typeof func.error === 'function') func.error(body, resp)
+        })
+        .on('anyway', (body, resp) => {
+          if (typeof func.anyway === 'function') func.anyway(body, resp)
+        })
+        .send.json({
+          path: path !== '' ? this.createPath(path) : ''
+        })
+    }
     return false
   }
 
@@ -645,9 +654,9 @@ class Dropbox extends CloudAPI {
         // and the recieved resource data appears to be merged with already existed,
         // it's a more rational way to just delete preview and public link (so them will not be changed in the app).
         // Initially, CloudAPI.renameResource() supposed to use only name in success callback,
-        // but its behavior was change, because of path-based (and therefore name-based) api's like Dropbox.
-        // Because of that an application need only new name and new path from request if succeed,
-        // but in theory, publicLink and preview data of the resource can be changed during this operation.
+        // but its behavior was changed, because of path-based (and therefore name-based) api's like Dropbox.
+        // Because of that, an application needs only new name and new path from request if succeed,
+        // but in theory, publicLink and preview data of the resource may be changed during this operation.
         delete resourceMeta.preview
         delete resourceMeta.publicLink
         if (typeof success === 'function') success(resourceMeta, resp)

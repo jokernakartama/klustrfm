@@ -3,9 +3,26 @@ import { urlStr } from '~/utilities/ajax'
 import getFileType from '~/utilities/getFileType'
 
 /**
+ * Other applications can send messages, while the window is waiting for a message with token data.
+ * The problem manifests itself in the unexpected closing of the authorization window and recieving
+ * incorrect data.
+ */
+const MESSAGE_SOURCE_IDENTIFIER = 'cloud-api-postcode-method'
+
+/**
+ * Common abstract interface for services api
  * @abstract
  * @class
- * @classdesc Common abstract interface for services api
+ * @classdesc Most of the methods provided by the class use parameter func: an object that
+ * may contain the following callback functions:
+ * - success - In most cases this function is used to handle the result of a query (sometimes after some preparations).
+ * - error - This function should handle any api errors like absence of resource or access errors.
+ * - exist - In some cases, service can throw errors of resource existance, so those errors should be handled there.
+ * - fail - This function should handle server errors, unknown errors or cases when some functions limited by service api.
+ * For example Dropbox does not provide special methods to get and manage trashed files. As the function is used in different cases,
+ * it can be called not in an asynchronous query, so do not forget to call func.anyway if it's nessesary.
+ * - anyway - This function mostly notices that an asynchronous query (sometimes without a query itself) completed (successfully or not),
+ * in methods which use consecutive queries it should be called in last one.
  * @author Sergey Kobzev <jokernakartama@gmail.com>
  * @hideconstructor
  */
@@ -145,7 +162,7 @@ class CloudAPI {
   }
 
   /**
-   * Gets parent id or path from resource metadata.
+   * Obtains parent id or path from resource metadata.
    * @abstract
    * @see parseDir
    * @param rawData {object}
@@ -155,7 +172,7 @@ class CloudAPI {
   }
 
   /**
-   * Gets a preview picture if supported.
+   * Obtains a preview picture if supported.
    * @abstact
    * @param rawData {object}
    * @returns {(string|null)} Returns the preview link or null
@@ -241,7 +258,7 @@ class CloudAPI {
   }
 
   /**
-   * Gets metadata of the resource.
+   * Obtains metadata of the resource.
    * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * @abstract
    * @param identifier {string} Path or id, depending on the service
@@ -314,7 +331,7 @@ class CloudAPI {
   }
 
   /**
-   * Gets public link. This method may send request or calculate link. Used in other methods.
+   * Obtains public link. This method may send request or calculate link. Used in other methods.
    * [ON SUCCESS]: This method can provide ANY DATA as the first argument as the data appears to be parsed in other methods.
    * @abstract
    * @param identifier {string} Resource identifier (path or id)
@@ -354,12 +371,12 @@ class CloudAPI {
    * @param newname {string} New file name
    * @param func {object} Object of callbacks: success, error, exist, fail, anyway
    */
-  static renameResource (identifier, newname, func = {}, overwrite = false) {
+  static renameResource (identifier, newname, func = {}) {
   }
 
   /**
    * Sends copy request. New file should be unshared.
-   * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * [ON EXIST]: If this method can call "exist" function it should call the exist callback with the path of the resource that will replace existed.
    * Make sence in path-based service api's.
    * @abstract
@@ -367,12 +384,12 @@ class CloudAPI {
    * @param destination {string} Path or id of parent directory
    * @param func {object} Object of callbacks: success, error, exist, fail, anyway
    */
-  static copyResourceTo (identifier, destination, func = {}, overwrite = false) {
+  static copyResourceTo (identifier, destination, func = {}) {
   }
 
   /**
    * Sends move request.
-   * [ON SUCCESS]: This method should call the success callback with an object of the serialized RESOURCE META as the first argument.
+   * [ON SUCCESS]: This method should call the success callback with an object of the RESPONSE BODY as the first argument.
    * [ON EXIST]: If this method can call "exist" function it should call the exist callback with the path of the resource that will replace existed.
    * Make sence in path-based service api's.
    * @abstract
@@ -380,7 +397,7 @@ class CloudAPI {
    * @param destination {string} Path or id of parent directory
    * @param func {object} Object of callbacks: success, error, exist, fail, anyway
    */
-  static moveResourceTo (identifier, destination, func = {}, overwrite = false) {
+  static moveResourceTo (identifier, destination, func = {}) {
   }
 
   /**
@@ -392,6 +409,12 @@ class CloudAPI {
    * @param func {object} Object of callbacks: success, error, exist, fail, anyway
    */
   static restoreResource (identifier, func = {}, overwrite = false) {
+  }
+  
+  /**
+   * Purges trash bin.
+   */
+  static purgeTrash () {
   }
 
   /**
@@ -419,22 +442,24 @@ class CloudAPI {
       }
       if (window.opener !== null) {
         // the origin should  be explicitly specified instead of "*"
-        window.opener.postMessage(JSON.stringify(resp), '*')
+        window.opener.postMessage({ source: MESSAGE_SOURCE_IDENTIFIER, payload: resp }, '*')
       }
       return true
     }
   }
 
   /**
-   * Open authorization window and call the callback function when gets message.
+   * Opens an authorization window and call the callback function when recieves message.
    * @param callback {function} Function that recieve data and popup window as arguments
    */
   static openAuthWindow (callback) {
     var params = urlStr(this.urls.authorize.params)
     var win = window.open(this.urls.authorize.path + '?' + params, 'auth' + this.names.serviceName, 'width=' + this.settings.winWidth + ',height=' + this.settings.winHeight)
     var onMessage = function onMessage (e) {
-      window.removeEventListener('message', onMessage)
-      if (typeof callback === 'function') callback(e.data, win)
+      if (e.data.source === MESSAGE_SOURCE_IDENTIFIER) {
+        window.removeEventListener('message', onMessage)
+        if (typeof callback === 'function') callback(e.data.payload, win)
+      }
     }
     window.addEventListener('message', onMessage)
   }

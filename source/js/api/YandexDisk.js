@@ -3,6 +3,7 @@ import AX from '~/utilities/ajax'
 import { default as pathJoin, dirname, getNameFromPath } from '~/utilities/path.join'
 import yandexDiskConfig from './configs/YandexDisk.config'
 
+const AUTH_TYPE = 'OAuth'
 /**
  * @class
  * @extends CloudAPI
@@ -16,7 +17,6 @@ class YandexDisk extends CloudAPI {
       winHeight: '600',
       winWidth: '800',
       clientId: yandexDiskConfig.id,
-      clientSecret: yandexDiskConfig.secret,
       stateName: yandexDiskConfig.name,
       listLimit: 99999
     }
@@ -46,7 +46,8 @@ class YandexDisk extends CloudAPI {
       makedir: 'https://cloud-api.yandex.net:443/v1/disk/resources',
       move: 'https://cloud-api.yandex.net:443/v1/disk/resources/move',
       copy: 'https://cloud-api.yandex.net:443/v1/disk/resources/copy',
-      restore: 'https://cloud-api.yandex.net:443/v1/disk/trash/resources/restore'
+      restore: 'https://cloud-api.yandex.net:443/v1/disk/trash/resources/restore',
+      purge: 'https://cloud-api.yandex.net:443/v1/disk/trash/resources'
     }
   }
 
@@ -142,7 +143,7 @@ class YandexDisk extends CloudAPI {
       }
     })
     AX.put(this.urls.makedir, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 201,
         'error': 404,
@@ -175,7 +176,7 @@ class YandexDisk extends CloudAPI {
   static getResourceMeta (path, func = {}, params = {}) {
     params['path'] = this.createPath(path)
     AX.get(this.urls.resourceMeta, params)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -218,7 +219,7 @@ class YandexDisk extends CloudAPI {
     urlParams[this.names.limitUrlParamName] = this.settings.listLimit
     urlParams['path'] = trash ? '/' : path
     AX.get(url, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -248,7 +249,7 @@ class YandexDisk extends CloudAPI {
    */
   static getDownloadLink (path, func = {}) {
     AX.get(this.urls.download, {path: this.createPath(path)})
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -290,7 +291,7 @@ class YandexDisk extends CloudAPI {
       }
     })
     AX.put(this.urls.publish, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -319,7 +320,7 @@ class YandexDisk extends CloudAPI {
   static unpublishResource (path, func) {
     var urlParams = {path: this.createPath(path)}
     AX.put(this.urls.unpublish, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -348,7 +349,7 @@ class YandexDisk extends CloudAPI {
   static removeResource (path, func, urlParams = {}) {
     urlParams = Object.assign(urlParams, {path: this.createPath(path)})
     AX.delete(this.urls.remove, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': [202, 204],
         'error': 404,
@@ -378,16 +379,16 @@ class YandexDisk extends CloudAPI {
     this.removeResource(path, func, {permanently: true})
   }
 
-  static copyOrMove (copy, currentPath, destination, func, overwrite = false) {
+  static copyOrMove (copy, currentPath, destination, func) {
     // As the only urls are different, this method is common for both actions
     var url = copy ? this.urls.copy : this.urls.move
     var urlParams = {
       from: this.createPath(currentPath),
       path: this.createPath(destination),
-      overwrite: overwrite
+      overwrite: false
     }
     AX.post(url, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': [201, 202],
         'error': 404,
@@ -422,7 +423,7 @@ class YandexDisk extends CloudAPI {
   /**
    * This method is like YandexDisk.moveResourceTo
    */
-  static renameResource (resourcePath, newname, func, overwrite = false) {
+  static renameResource (resourcePath, newname, func) {
     var parent = dirname(resourcePath)
     var destination = pathJoin(parent, newname)
     var success = func.success
@@ -442,69 +443,25 @@ class YandexDisk extends CloudAPI {
         if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
       }
     })
-    this.copyOrMove(false, resourcePath, destination, actionCallback, overwrite)
+    this.copyOrMove(false, resourcePath, destination, actionCallback)
   }
 
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/CopyResource}
    */
-  static copyResourceTo (path, destination, func = {}, overwrite = false) {
+  static copyResourceTo (path, destination, func = {}) {
     var resourceName = getNameFromPath(path)
     var newPath = pathJoin(destination, resourceName)
-    var success = func.success
-    var anyway = func.anyway
-    var exist  = func.exist
-    var resourceMeta
-    var dataCallback = Object.assign({}, func, {
-      success: (body, resp) => {
-        resourceMeta = this.serialize(body)
-        if (typeof success === 'function') success(resourceMeta, resp)
-      }
-    })
-    var actionCallback = Object.assign({}, func, {
-      success: () => {
-        this.getResourceMeta(newPath, dataCallback)
-      },
-      exist: (body, resp) => {
-        if (body);
-        if (typeof exist === 'function') exist(newPath, resp)
-      },
-      anyway: (body, resp) => {
-        if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
-      }
-    })
-    this.copyOrMove(true, path, newPath, actionCallback, overwrite)
+    this.copyOrMove(true, path, newPath, func)
   }
 
   /**
    * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/resources/MoveResource}
    */
-  static moveResourceTo (path, destination, func = {}, overwrite = false) {
+  static moveResourceTo (path, destination, func = {}) {
     var resourceName = getNameFromPath(path)
     var newPath = pathJoin(destination, resourceName)
-    var success = func.success
-    var anyway = func.anyway
-    var exist  = func.exist
-    var resourceMeta
-    var dataCallback = Object.assign({}, func, {
-      success: (body, resp) => {
-        resourceMeta = this.serialize(body)
-        if (typeof success === 'function') success(resourceMeta, resp)
-      }
-    })
-    var actionCallback = Object.assign({}, func, {
-      success: () => {
-        this.getResourceMeta(newPath, dataCallback)
-      },
-      exist: (body, resp) => {
-        if (body);
-        if (typeof exist === 'function') exist(newPath, resp)
-      },
-      anyway: (body, resp) => {
-        if (typeof anyway === 'function' && !resourceMeta) anyway(body, resp)
-      }
-    })
-    this.copyOrMove(false, path, newPath, actionCallback, overwrite)
+    this.copyOrMove(false, path, newPath, func)
   }
 
   /**
@@ -516,7 +473,7 @@ class YandexDisk extends CloudAPI {
       overwrite: overwrite
     }
     AX.put(this.urls.restore, urlParams)
-      .headers({'Authorization': 'OAuth ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': [201, 202],
         'error': 404,
@@ -541,6 +498,29 @@ class YandexDisk extends CloudAPI {
       })
       .send()
     return false
+  }
+  
+  /**
+   * @see {@link https://tech.yandex.ru/disk/poligon/#!//v1/disk/trash/resources/ClearTrash}
+   */
+  static purgeTrash (func = {}) {
+    AX.delete(this.urls.purge)
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
+      .status({
+        'success': [202, 204],
+        'fail': ['!202', '!204'],
+        'anyway': 'all'
+      })
+      .on('success', (body, resp) => {
+        if (typeof func.success === 'function') func.success(body, resp)
+      })
+      .on('fail', (body, resp) => {
+        if (typeof func.fail === 'function') func.fail(body, resp)
+      })
+      .on('anyway', (body, resp) => {
+        if (typeof func.anyway === 'function') func.anyway(body, resp)
+      })
+      .send()
   }
 }
 

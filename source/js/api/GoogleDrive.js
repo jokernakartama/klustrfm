@@ -2,6 +2,8 @@ import CloudAPI from './CloudAPI'
 import AX from '~/utilities/ajax'
 import googleDriveConfig from './configs/GoogleDrive.config'
 
+const AUTH_TYPE = 'Bearer'
+
 /**
  * @class
  * @extends CloudAPI
@@ -52,7 +54,8 @@ class GoogleDrive extends CloudAPI {
       makedir: 'https://www.googleapis.com/drive/v2/files',
       move: 'https://www.googleapis.com/drive/v2/files/',
       copy: 'https://www.googleapis.com/drive/v2/files/',
-      restore: 'https://www.googleapis.com/drive/v2/files/'
+      restore: 'https://www.googleapis.com/drive/v2/files/',
+      purge: 'https://www.googleapis.com/drive/v2/files/trash'
     }
   }
 
@@ -141,7 +144,7 @@ class GoogleDrive extends CloudAPI {
    */
   static updateResource (id, data, func = {}) {
     AX.put(this.urls.resourceMeta + id)
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -178,7 +181,7 @@ class GoogleDrive extends CloudAPI {
       ]
     }
     AX.post(this.urls.makedir)
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -208,7 +211,7 @@ class GoogleDrive extends CloudAPI {
   static getResourceMeta (id, func = {}, params = {}) {
     if (id === '' || id === '/') id = this.names.rootPathIdentifier
     AX.get(this.urls.resourceMeta + id, params)
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': [200, 304],
         'error': 404,
@@ -275,7 +278,7 @@ class GoogleDrive extends CloudAPI {
       urlParams['q'] = '\'' + id + '\' in parents and trashed=false'
     }
     AX.get(this.urls.filesList, urlParams)
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': [200, 304],
         'error': 404,
@@ -351,7 +354,7 @@ class GoogleDrive extends CloudAPI {
       }
     })
     AX.post(this.urls.publish + id + '/permissions')
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -379,7 +382,7 @@ class GoogleDrive extends CloudAPI {
    */
   static unpublishResource (id, func = {}) {
     AX.delete(this.urls.unpublish + id + '/permissions/anyoneWithLink')
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 204,
         'error': 404,
@@ -406,9 +409,9 @@ class GoogleDrive extends CloudAPI {
    * @see {@link https://developers.google.com/drive/v2/reference/files/trash}
    */
   static removeResource (id, func = {}, params = {}) {
-    if (params); // ignore as not uset
+    if (params); // ignore as not used
     AX.post(this.urls.remove + id + '/trash')
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -436,7 +439,7 @@ class GoogleDrive extends CloudAPI {
    */
   static deleteResource (id, func = {}) {
     AX.delete(this.urls.delete + id)
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 204,
         'error': 404,
@@ -462,8 +465,7 @@ class GoogleDrive extends CloudAPI {
   /**
    * @see GoogleDrive.updateResource
    */
-  static renameResource (id, newname, func = {}, overwrite = false) {
-    if (overwrite); // Google Drive resources are id-based so they cannot be overwritten
+  static renameResource (id, newname, func = {}) {
     var data = {
       'title': newname
     }
@@ -480,9 +482,8 @@ class GoogleDrive extends CloudAPI {
   /**
    * @see {@link https://developers.google.com/drive/v2/reference/files/copy}
    */
-  static copyResourceTo (id, destination, func = {}, overwrite = false) {
+  static copyResourceTo (id, destination, func = {}) {
     if (destination === '' || destination === '/') destination = this.names.rootPathIdentifier
-    if (overwrite); // Google Drive resources are id-based so they cannot be overwritten
     var title
     var callback = Object.assign({}, func, {
       success: (body) => {
@@ -494,7 +495,7 @@ class GoogleDrive extends CloudAPI {
           'title': title
         }
         AX.post(this.urls.copy + id + '/copy')
-          .headers({'Authorization': 'Bearer ' + this.accessToken})
+          .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
           .status({
             'success': 200,
             'error': 404,
@@ -555,7 +556,7 @@ class GoogleDrive extends CloudAPI {
   static restoreResource (id, func = {}, overwrite = false) {
     if (overwrite); // ignore as not uset
     AX.post(this.urls.remove + id + '/untrash')
-      .headers({'Authorization': 'Bearer ' + this.accessToken})
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
       .status({
         'success': 200,
         'error': 404,
@@ -576,6 +577,29 @@ class GoogleDrive extends CloudAPI {
       })
       .send()
     return false
+  }
+  
+  /**
+   * @see {@link https://developers.google.com/drive/v2/reference/files/emptyTrash}
+   */
+  static purgeTrash (func = {}) {
+    AX.delete(this.urls.purge)
+      .headers({'Authorization': AUTH_TYPE + ' ' + this.accessToken})
+      .status({
+        'success': 204,
+        'fail': '!204',
+        'anyway': 'all'
+      })
+      .on('success', (body, resp) => {
+        if (typeof func.success === 'function') func.success(body, resp)
+      })
+      .on('fail', (body, resp) => {
+        if (typeof func.fail === 'function') func.fail(body, resp)
+      })
+      .on('anyway', (body, resp) => {
+        if (typeof func.anyway === 'function') func.anyway(body, resp)
+      })
+      .send()
   }
 }
 

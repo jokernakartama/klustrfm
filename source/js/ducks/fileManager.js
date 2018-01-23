@@ -1,6 +1,7 @@
 import getAPI from '~/api/index.js'
 import { serviceMap } from '~/api/index.js'
 import { setKey, getKey } from '~/utilities/session'
+import { appPrompt, appWarning, appConfirm } from '~/components/dialogs'
 
 // INITIAL STATE
 const SORTING_SETTINGS_KEY = 'sort'
@@ -241,23 +242,30 @@ export function parseLocation (location, prevService = null) {
 export function changeDirectory (dirId, serviceName, isTrash = false) {
   return function (dispatch) {
     const Service = getAPI(serviceName)
+    if (Service !== null) {
+      dispatch(switchService({
+          service: serviceName,
+          path: dirId,
+          isTrash: isTrash
+        })
+      )
+    }
     if (Service) {
       dispatch(deselectResource())
       Service.getResource(dirId, {
         success: (data) => {
-          dispatch(switchService({
-              service: serviceName,
-              path: dirId,
-              isTrash: isTrash
-            })
-          )
           dispatch(directoryUpdate(data))
         },
         error: () => {
           // should be not found
           dispatch(throwError(404))
         },
-        fail: () => {},
+        fail: (body, resp) => {
+          if (resp === null) {
+            dispatch(directoryUnavailable())
+            appWarning(dispatch)(body)
+          }
+        },
         anyway: () => {
           dispatch(requestEnd())
         }
@@ -354,6 +362,30 @@ export function restoreResource (state, overwrite = false) {
           dispatch(requestEnd())
         }
       }, overwrite)
+    } else {
+      dispatch(serviceError(Service))
+    }
+  }
+}
+
+export function purgeTrash (service, current) {
+  return function (dispatch) {
+    const Service = getAPI(service)
+    if (Service) {
+      appConfirm(dispatch)('Are you sure?')
+        .then(() => {
+          dispatch(requestStart())
+          Service.purgeTrash({
+            success: () => {
+              dispatch(directoryUpdate({current, resources: {}}))
+            },
+            fail: () => {
+            },
+            anyway: () => {
+              dispatch(requestEnd())
+            }
+          })
+        })
     } else {
       dispatch(serviceError(Service))
     }
@@ -481,7 +513,7 @@ export function renameResource (state, value, overwrite = false) {
  * @param isCopy {boolean} Whether resource should be copied
  * @param overwrite {boolean} Whether an existing resource should be overwritten
  */
-export function pasteResource (state, mapPathToId, overwrite = false, replace = false) {
+export function pasteResource (state) {
   return function (dispatch) {
     const buffer = state.buffer[state.service]
     const Service =  getAPI(state.service)
@@ -492,24 +524,20 @@ export function pasteResource (state, mapPathToId, overwrite = false, replace = 
         Service[action](buffer.path, state.currentDirectory.path, {
           success: (data) => {
             dispatch(changeDirectory(state.currentDirectory.path, state.service, state.isTrash))
-            // If the replaced resource was selected, select the replacement
-            if (replace && replace === state.selectedId) dispatch(selectResource(data.id))
             // The resource moves only once then it just will be copied from new directory
             if (!buffer.copy) dispatch(updateBuffer(data.id, data.path, state.service, true))
           },
           error: () => {
             dispatch(requestEnd())
           },
-          exist: (target) => {
+          exist: () => {
             dispatch(requestEnd())
-            var id = mapPathToId[target]
-            var answer = confirm('Resource already exists in current directory. \n Do you want to overwrite it?')
-            if (answer) dispatch(pasteResource(state, mapPathToId, true, id))
+            appWarning(dispatch)('Resource with the same path already exists in current directory.')
           },
           fail: () => {
             dispatch(requestEnd())
           }
-        }, overwrite)
+        })
       }
     } else if (Service === null) {
       dispatch(throwError(1))
@@ -523,26 +551,28 @@ export function makeDir (state) {
   return function (dispatch) {
     const Service =  getAPI(state.service)
     if (Service) {
-      var dirName = prompt('Type new directory name')
-      if (dirName) {
-        dispatch(requestStart())
-        Service.makeDir(state.currentDirectory.path, dirName, {
-          success: (data) => {
-            dispatch(updateResource({
-              id: data.id,
-              value: data
-            }))
-          },
-          error: () => {},
-          exist: () => {
-            alert('The directory "' + dirName + '" already exists')
-          },
-          fail: () => {},
-          anyway: () => {
-            dispatch(requestEnd())
+      appPrompt(dispatch)('Type new directory name')
+        .then((dirName) => {
+          if (dirName) {
+            dispatch(requestStart())
+            Service.makeDir(state.currentDirectory.path, dirName, {
+              success: (data) => {
+                dispatch(updateResource({
+                  id: data.id,
+                  value: data
+                }))
+              },
+              error: () => {},
+              exist: () => {
+                appWarning(dispatch)('The directory "' + dirName + '" already exists')
+              },
+              fail: () => {},
+              anyway: () => {
+                dispatch(requestEnd())
+              }
+            })
           }
         })
-      }
     } else if (Service === null) {
       dispatch(throwError(1))
     } else {

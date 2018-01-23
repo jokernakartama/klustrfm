@@ -27,7 +27,7 @@ const MICROSOFT_ONE_DRIVE_NAME = MicrosoftOneDrive.settings.stateName
 export const serviceMap = {
   [GOOGLE_DRIVE_NAME]: GoogleDrive,
   [YANDEX_DISK_NAME]: YandexDisk,
-  // [DROPBOX_NAME]: Dropbox,
+  [DROPBOX_NAME]: Dropbox
   // [BOX_NAME]: Box,
   // [MICROSOFT_ONE_DRIVE_NAME]: MicrosoftOneDrive
 }

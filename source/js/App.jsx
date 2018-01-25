@@ -1,4 +1,5 @@
 import React from 'react'
+import ReactDOM from 'react-dom'
 import ServicePanel from './containers/ServicePanel'
 import Modal from '~/components/dialogs/Modal'
 import FileManagerArea from './containers/FileManagerArea'
@@ -14,7 +15,7 @@ class App extends React.Component {
       <div className="application">
         <ServicePanel />
         <FileManagerArea/>
-        <Modal />
+        { ReactDOM.createPortal(<Modal />, document.getElementById('modal')) }
       </div>
     )
   }

@@ -25,6 +25,13 @@ class Resource extends React.Component{
     isTrash: PropTypes.bool,
     isSelected: PropTypes.bool
   }
+  
+  constructor () {
+    super()
+    this.onClickHandler = this.onClickHandler.bind(this)
+    this.onDoubleClickHandler = this.onDoubleClickHandler.bind(this)
+    this.onDragStartHandler = this.onDragStartHandler.bind(this)
+  }
 
   createHref () {
     const {
@@ -75,9 +82,9 @@ class Resource extends React.Component{
         href={ this.createHref() }
         className={ 'filelist__item' + (isSelected ? ' filelist__item_selected' : '') }
         id={ id }
-        onDragStart={ (e) => this.onDragStartHandler(e) }
-        onClick={ (e) => this.onClickHandler(e)}
-        onDoubleClick={ () => this.onDoubleClickHandler() }
+        onDragStart={ this.onDragStartHandler }
+        onClick={ this.onClickHandler }
+        onDoubleClick={ this.onDoubleClickHandler }
       >
         <div className={ 'filelist__icon icon icon_' + type } >
           { preview &&

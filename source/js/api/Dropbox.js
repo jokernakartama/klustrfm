@@ -41,7 +41,8 @@ class Dropbox extends CloudAPI {
       redirectURI: DropboxConfig.redirectURI,
       thumbnailSize: 'w128h128',
       thumbnailFormat: 'jpeg',
-      maxThumbnailBatchAmount: 25
+      maxThumbnailBatchAmount: 25,
+      trashBinIsUnsupported: true
     }
   }
 

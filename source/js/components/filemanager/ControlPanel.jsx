@@ -1,14 +1,26 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
+import {
+  FILE_MANAGER_ACTION_BUTTON_REFRESH,
+  FILE_MANAGER_ACTION_BUTTON_MKDIR,
+  FILE_MANAGER_ACTION_BUTTON_REMOVE,
+  FILE_MANAGER_ACTION_BUTTON_COPY,
+  FILE_MANAGER_ACTION_BUTTON_CUT,
+  FILE_MANAGER_ACTION_BUTTON_PASTE,
+  FILE_MANAGER_ACTION_BUTTON_PURGE
+} from '~/l10n'
+
 class ControlPanel extends React.Component {
   static propTypes = {
     isTrash: PropTypes.bool,
     isSelected: PropTypes.bool,
     emptyBuffer: PropTypes.bool,
+    refresh: PropTypes.func,
     remove: PropTypes.func,
     removePermanently: PropTypes.func,
     restore: PropTypes.func,
+    purge: PropTypes.func,
     rename: PropTypes.func,
     download: PropTypes.func,
     publish: PropTypes.func,
@@ -24,8 +36,9 @@ class ControlPanel extends React.Component {
       isTrash,
       isSelected,
       emptyBuffer,
+      refresh,
       remove,
-      removePermanently,
+      purge,
       makedir,
       cutInBuffer,
       copyInBuffer,
@@ -34,14 +47,13 @@ class ControlPanel extends React.Component {
     const disabled = !(!isTrash && isSelected)
     return (
       <div>
-        { isTrash && <button> purge trash </button> }
-        <button onClick={ makedir } disabled={ isTrash }> mkdir </button>
-        <button onClick={ remove } disabled={ disabled }> remove </button>
-        <button onClick={ removePermanently } disabled={ disabled }> delete </button>
-        <button onClick={ copyInBuffer } disabled={ disabled }> copy </button>
-        <button onClick={ cutInBuffer } disabled={ disabled }> cut </button>
-        <button onClick={ paste } disabled={ !(!isTrash && !emptyBuffer) }> paste </button>
-        { /* flush button for trash */ }
+        { isTrash && <button onClick={ purge }> { FILE_MANAGER_ACTION_BUTTON_PURGE } </button> }
+        <button onClick={ refresh }> { FILE_MANAGER_ACTION_BUTTON_REFRESH } </button>
+        <button onClick={ makedir } disabled={ isTrash }> { FILE_MANAGER_ACTION_BUTTON_MKDIR } </button>
+        <button onClick={ remove } disabled={ disabled }> { FILE_MANAGER_ACTION_BUTTON_REMOVE } </button>
+        <button onClick={ copyInBuffer } disabled={ disabled }> { FILE_MANAGER_ACTION_BUTTON_COPY } </button>
+        <button onClick={ cutInBuffer } disabled={ disabled }> { FILE_MANAGER_ACTION_BUTTON_CUT } </button>
+        <button onClick={ paste } disabled={ !(!isTrash && !emptyBuffer) }> { FILE_MANAGER_ACTION_BUTTON_PASTE } </button>
       </div>
     )
   }

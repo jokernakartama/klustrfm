@@ -1,6 +1,14 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
+import {
+  FILE_MANAGER_SORT_SORTBY,
+  FILE_MANAGER_SORT_BUTTON_NAME,
+  FILE_MANAGER_SORT_BUTTON_SIZE,
+  FILE_MANAGER_SORT_BUTTON_TYPE,
+  FILE_MANAGER_SORT_BUTTON_PUBLICITY
+} from '~/l10n'
+
 class SortBar extends React.Component {
   static propTypes = {
     field: PropTypes.string,
@@ -12,14 +20,14 @@ class SortBar extends React.Component {
     const { field, asc, order } = this.props
     return (
       <div className="sortbar">
-        Sort by &nbsp;
+        { FILE_MANAGER_SORT_SORTBY } &nbsp;
 
         <button onClick={ () => order('name', asc) } className={[
           'sortbar__button',
           'sortbar__button_action_field',
           (field === 'name' ? 'sortbar__button_active' : '' )
         ].join(' ')}>
-        name
+        { FILE_MANAGER_SORT_BUTTON_NAME }
         </button>
 
         <button onClick={ () => order('size', asc) } className={[
@@ -27,7 +35,7 @@ class SortBar extends React.Component {
           'sortbar__button_action_field',
           (field === 'size' ? 'sortbar__button_active' : '')
         ].join(' ')}>
-        size
+        { FILE_MANAGER_SORT_BUTTON_SIZE }
         </button>
         
         <button onClick={ () => order('type', asc) } className={[
@@ -35,7 +43,7 @@ class SortBar extends React.Component {
           'sortbar__button_action_field',
           (field === 'type' ? 'sortbar__button_active' : '')
         ].join(' ')}>
-        type
+        { FILE_MANAGER_SORT_BUTTON_TYPE }
         </button>
         
         <button onClick={ () => order('publicLink', asc) } className={[
@@ -43,7 +51,7 @@ class SortBar extends React.Component {
           'sortbar__button_action_field',
           (field === 'publicLink' ? 'sortbar__button_active' : '')
         ].join(' ')}>
-        publicity
+        { FILE_MANAGER_SORT_BUTTON_PUBLICITY }
         </button>
 
         &nbsp;&nbsp;&nbsp;

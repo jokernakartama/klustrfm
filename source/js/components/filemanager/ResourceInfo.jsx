@@ -2,6 +2,16 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import bytesToString from '~/utilities/bytesToString'
 
+import {
+  FILE_MANAGER_RESOURCE_INFO_NAME,
+  FILE_MANAGER_RESOURCE_INFO_SIZE,
+  FILE_MANAGER_RESOURCE_INFO_PUBLIC,
+  FILE_MANAGER_RESOURCE_INFO_MODIFIED,
+  FILE_MANAGER_ACTION_BUTTON_RENAME,
+  FILE_MANAGER_ACTION_BUTTON_RESTORE,
+  FILE_MANAGER_ACTION_BUTTON_DOWNLOAD
+} from '~/l10n'
+
 export default class ResourceInfo extends React.Component {
   static propTypes = {
     id: PropTypes.string,
@@ -12,6 +22,7 @@ export default class ResourceInfo extends React.Component {
       PropTypes.bool
     ]),
     size: PropTypes.number,
+    hasSelection: PropTypes.bool,
     isTrash: PropTypes.bool,
     isFile: PropTypes.bool,
     remove: PropTypes.func,
@@ -65,27 +76,28 @@ export default class ResourceInfo extends React.Component {
       download
     } = this.props
     return (
-      <div className="resource-info">
+      <div className={ 'resource-info' }>
         { isTrash && 'IN TRASH' }
-        Name: 
+        { FILE_MANAGER_RESOURCE_INFO_NAME }: 
         { !this.state.readyToRename && 
-          <span>{ name } <button onClick={ () => this.showRenameField(true) }>rename</button></span>
+          <span>{ name } <button onClick={ () => this.showRenameField(true) }>{ FILE_MANAGER_ACTION_BUTTON_RENAME }</button></span>
         }
         { this.state.readyToRename &&
           <span>
             <input
+              type="text"
               defaultValue={ name }
               autoFocus={ true }
               onBlur={ (e) => this.changeName(e) }
             />
           </span> 
         }  <br />
-        Size: { bytesToString(size) } <br />
-        Share link: <input value={ publicLink || '' } readOnly="readonly" />
+        { FILE_MANAGER_RESOURCE_INFO_SIZE } { bytesToString(size) } <br />
+        { FILE_MANAGER_RESOURCE_INFO_PUBLIC } <input value={ publicLink || '' } readOnly="readonly" />
         <input type="checkbox" checked={ publicLink ? true : false } onChange={ () => this.togglePublicity() } /> <br />
-        Modified: { modified } <br />
-        { !isTrash && isFile && <button onClick={ download }> download </button> }
-        { isTrash && <button onClick={ restore }> restore </button> }
+        { FILE_MANAGER_RESOURCE_INFO_MODIFIED } { modified } <br />
+        { !isTrash && isFile && <button onClick={ download }> { FILE_MANAGER_ACTION_BUTTON_DOWNLOAD } </button> }
+        { isTrash && <button onClick={ restore }> { FILE_MANAGER_ACTION_BUTTON_RESTORE } </button> }
         <br />
       </div>
     )
